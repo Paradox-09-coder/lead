@@ -1,0 +1,73 @@
+import { NextResponse } from "next/server";
+import { connectDB } from "@/lib/mongodb";
+import { Connection } from "@/models/Connection";
+import { getSessionUserId } from "@/lib/server-session";
+import { toErrorResponseBody } from "@/lib/api-error";
+
+export const runtime = "nodejs";
+
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+  }
+
+  try {
+    await connectDB();
+    const connection = await Connection.findOne({
+      _id: id,
+      user: userId,
+      platform: { $in: ["bitrix24", "amocrm"] },
+    }).select("+webhookUrl +jwtToken");
+
+    if (!connection) {
+      return NextResponse.json({ message: "CRM ulanishi topilmadi" }, { status: 404 });
+    }
+
+    if (connection.platform === "bitrix24") {
+      const url = new URL(
+        "crm.status.list",
+        connection.webhookUrl!.endsWith("/") ? connection.webhookUrl! : `${connection.webhookUrl}/`,
+      );
+      url.searchParams.set("filter[ENTITY_ID]", "STATUS");
+
+      const response = await fetch(url);
+      const body = await response.json();
+
+      if (!response.ok || body.error) {
+        return NextResponse.json(
+          { message: body?.error_description ?? "Bosqichlar ro'yxati olinmadi" },
+          { status: 502 },
+        );
+      }
+
+      const stages = (body.result ?? [])
+        .sort((a: { SORT: string }, b: { SORT: string }) => Number(a.SORT) - Number(b.SORT))
+        .map((stage: { STATUS_ID: string; NAME: string }) => ({ id: stage.STATUS_ID, name: stage.NAME }));
+      return NextResponse.json(stages);
+    }
+
+    // amoCRM: use the main pipeline's statuses.
+    const base = connection.accountUrl!.replace(/\/$/, "");
+    const response = await fetch(`${base}/api/v4/leads/pipelines`, {
+      headers: { Authorization: `Bearer ${connection.jwtToken}` },
+    });
+    const body = await response.json();
+
+    if (!response.ok) {
+      return NextResponse.json({ message: body?.title ?? "Bosqichlar ro'yxati olinmadi" }, { status: 502 });
+    }
+
+    const pipelines = body._embedded?.pipelines ?? [];
+    const mainPipeline = pipelines.find((p: { is_main: boolean }) => p.is_main) ?? pipelines[0];
+    const statuses = mainPipeline?._embedded?.statuses ?? [];
+    const stages = statuses
+      .sort((a: { sort: number }, b: { sort: number }) => a.sort - b.sort)
+      .map((status: { id: number; name: string }) => ({ id: String(status.id), name: status.name }));
+    return NextResponse.json(stages);
+  } catch (err) {
+    const { message, status } = toErrorResponseBody(err);
+    return NextResponse.json({ message }, { status });
+  }
+}
