@@ -60,8 +60,26 @@ export async function GET(request: NextRequest) {
       throw new Error(tokenBody.error?.message ?? "Access token olinmadi");
     }
 
+    // The code exchange returns a short-lived (~1h) user token, and Page tokens
+    // fetched with it expire just as fast. Swapping it for a long-lived user
+    // token first makes /me/accounts return long-lived Page tokens.
+    const longLivedUrl = new URL(`https://graph.facebook.com/${FACEBOOK_GRAPH_VERSION}/oauth/access_token`);
+    longLivedUrl.searchParams.set("grant_type", "fb_exchange_token");
+    longLivedUrl.searchParams.set("client_id", appId);
+    longLivedUrl.searchParams.set("client_secret", appSecret);
+    longLivedUrl.searchParams.set("fb_exchange_token", tokenBody.access_token);
+
+    const longLivedResponse = await fetch(longLivedUrl);
+    const longLivedBody = (await longLivedResponse.json()) as {
+      access_token?: string;
+      error?: { message: string };
+    };
+    if (!longLivedResponse.ok || !longLivedBody.access_token) {
+      throw new Error(longLivedBody.error?.message ?? "Uzoq muddatli token olinmadi");
+    }
+
     const pagesUrl = new URL(`https://graph.facebook.com/${FACEBOOK_GRAPH_VERSION}/me/accounts`);
-    pagesUrl.searchParams.set("access_token", tokenBody.access_token);
+    pagesUrl.searchParams.set("access_token", longLivedBody.access_token);
     const pagesResponse = await fetch(pagesUrl);
     const pagesBody = (await pagesResponse.json()) as {
       data?: FacebookPage[];

@@ -1,23 +1,28 @@
-const STATUS_STYLES: Record<string, string> = {
-  SUCCESS: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
-  FAILED: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
-  PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300",
-};
+"use client";
 
-const STATUS_LABELS: Record<string, string> = {
-  SUCCESS: "Muvaffaqiyatli",
-  FAILED: "Xato",
-  PENDING: "Kutilmoqda",
+import { useT } from "@/i18n/client";
+
+const STATUS_STYLES: Record<string, string> = {
+  success: "bg-success/15 text-success",
+  failed: "bg-danger/15 text-danger",
+  pending: "bg-warning/15 text-warning",
+  saved: "bg-primary/15 text-primary",
+  paid: "bg-success/15 text-success",
+  cancelled: "bg-surface-hover text-muted",
 };
 
 export function StatusBadge({ status }: { status: string }) {
+  const { t } = useT();
+  const label = t(`status.${status}`);
+  // When the dict has no match, translate() returns the key — fall back to raw.
+  const display = label === `status.${status}` ? status : label;
   return (
     <span
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-        STATUS_STYLES[status] ?? "bg-gray-100 text-gray-800"
+        STATUS_STYLES[status] ?? "bg-surface-hover text-muted"
       }`}
     >
-      {STATUS_LABELS[status] ?? status}
+      {display}
     </span>
   );
 }

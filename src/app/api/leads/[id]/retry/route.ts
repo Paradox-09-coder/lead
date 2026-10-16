@@ -1,59 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { Prisma } from "@/generated/prisma/client";
-import { fetchLeadData } from "@/lib/facebook";
-import { createBitrixLead, mapFacebookLeadToBitrix } from "@/lib/bitrix";
+import { connectDB } from "@/lib/mongodb";
+import { Lead } from "@/models/Lead";
+import { getSessionUserId } from "@/lib/server-session";
+import { retryLead } from "@/lib/lead-delivery";
+import { toErrorResponseBody } from "@/lib/api-error";
 
 export const runtime = "nodejs";
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const lead = await prisma.syncedLead.findUnique({ where: { id } });
-  if (!lead) {
-    return NextResponse.json({ error: "Lead topilmadi" }, { status: 404 });
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
-  const pageAccessToken = process.env.FB_PAGE_ACCESS_TOKEN;
-  const bitrixWebhookUrl = process.env.BITRIX_WEBHOOK_URL;
-  const sourceId = process.env.BITRIX_SOURCE_ID ?? "WEBFORM";
-
   try {
-    if (!pageAccessToken) throw new Error("FB_PAGE_ACCESS_TOKEN is not configured");
-    if (!bitrixWebhookUrl) throw new Error("BITRIX_WEBHOOK_URL is not configured");
+    await connectDB();
+    const lead = await Lead.findOne({ _id: id, user: userId });
+    if (!lead) {
+      return NextResponse.json({ message: "Lid topilmadi" }, { status: 404 });
+    }
 
-    const leadData = await fetchLeadData(lead.fbLeadgenId, pageAccessToken);
-    const mappedFields = mapFacebookLeadToBitrix(leadData.fieldData, {
-      pageId: lead.pageId,
-      formId: lead.formId,
-      sourceId,
-    });
-    const bitrixLeadId = await createBitrixLead(bitrixWebhookUrl, mappedFields);
-
-    const updated = await prisma.syncedLead.update({
-      where: { id },
-      data: {
-        status: "SUCCESS",
-        rawFieldData: leadData.fieldData as unknown as Prisma.InputJsonValue,
-        mappedFields: mappedFields as unknown as Prisma.InputJsonValue,
-        bitrixLeadId,
-        errorMessage: null,
-        retryCount: { increment: 1 },
-      },
-    });
-    return NextResponse.json({ ok: true, lead: updated });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const updated = await prisma.syncedLead.update({
-      where: { id },
-      data: {
-        status: "FAILED",
-        errorMessage: message,
-        retryCount: { increment: 1 },
-      },
-    });
-    return NextResponse.json({ ok: false, lead: updated, error: message }, { status: 502 });
+    const updated = await retryLead(lead);
+    if (updated.status === "failed") {
+      return NextResponse.json({ message: updated.errorMessage ?? "Yuborilmadi" }, { status: 502 });
+    }
+    return NextResponse.json({ ok: true, status: updated.status });
+  } catch (err) {
+    const { message, status } = toErrorResponseBody(err);
+    return NextResponse.json({ message }, { status });
   }
 }

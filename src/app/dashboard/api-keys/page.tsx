@@ -1,12 +1,15 @@
-import { KeyRound } from "lucide-react";
-import { ComingSoon } from "@/components/dashboard/ComingSoon";
+import { ApiKeysManager } from "@/components/dashboard/ApiKeysManager";
+import { getT } from "@/i18n/server";
 
-export default function ApiKeysPage() {
+export default async function ApiKeysPage() {
+  const { t } = await getT();
+  const baseUrl = process.env.APP_URL?.replace(/\/$/, "") ?? "https://leadsync-production-5873.up.railway.app";
+
   return (
-    <ComingSoon
-      title="API Kalitlar"
-      description="O'zingizning integratsiyalaringiz uchun API kalitlarini shu yerda yaratasiz va boshqarasiz."
-      icon={KeyRound}
-    />
+    <div>
+      <h1 className="text-2xl font-semibold">{t("apiKeys.title")}</h1>
+      <p className="mt-1 text-sm text-muted">{t("apiKeys.subtitle")}</p>
+      <ApiKeysManager baseUrl={baseUrl} />
+    </div>
   );
 }

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, Menu, LogOut, User } from "lucide-react";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useT } from "@/i18n/client";
 
 interface TopbarUser {
   fullName?: string;
@@ -11,6 +13,7 @@ interface TopbarUser {
 
 export function Topbar({ onMenuClick, user }: { onMenuClick: () => void; user?: TopbarUser }) {
   const router = useRouter();
+  const { t } = useT();
   const displayName = user?.fullName || user?.email || "Admin";
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -24,14 +27,22 @@ export function Topbar({ onMenuClick, user }: { onMenuClick: () => void; user?: 
 
   return (
     <header className="h-16 border-b border-border flex items-center justify-between px-4 sm:px-6 shrink-0">
-      <button onClick={onMenuClick} className="md:hidden p-2 rounded-md hover:bg-surface-hover" aria-label="Menyu">
+      <button
+        onClick={onMenuClick}
+        className="md:hidden p-2 rounded-md hover:bg-surface-hover"
+        aria-label={t("topbar.menu")}
+      >
         <Menu className="size-5" />
       </button>
 
       <div className="hidden md:block" />
 
       <div className="flex items-center gap-3">
-        <button className="p-2 rounded-md hover:bg-surface-hover text-muted" aria-label="Bildirishnomalar">
+        <LanguageSwitcher />
+        <button
+          className="p-2 rounded-md hover:bg-surface-hover text-muted"
+          aria-label={t("topbar.notifications")}
+        >
           <Bell className="size-4.5" />
         </button>
 
@@ -54,7 +65,7 @@ export function Topbar({ onMenuClick, user }: { onMenuClick: () => void; user?: 
                 className="w-full flex items-center gap-2 text-left px-3 py-2 text-sm hover:bg-surface-hover transition-colors disabled:opacity-50"
               >
                 <LogOut className="size-4" />
-                Chiqish
+                {t("topbar.logout")}
               </button>
             </div>
           )}

@@ -1,0 +1,27 @@
+import { NextResponse } from "next/server";
+import { connectDB } from "@/lib/mongodb";
+import { ApiKey } from "@/models/ApiKey";
+import { getSessionUserId } from "@/lib/server-session";
+import { toErrorResponseBody } from "@/lib/api-error";
+
+export const runtime = "nodejs";
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+  }
+
+  try {
+    await connectDB();
+    const deleted = await ApiKey.findOneAndDelete({ _id: id, user: userId });
+    if (!deleted) {
+      return NextResponse.json({ message: "Kalit topilmadi" }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    const { message, status } = toErrorResponseBody(err);
+    return NextResponse.json({ message }, { status });
+  }
+}

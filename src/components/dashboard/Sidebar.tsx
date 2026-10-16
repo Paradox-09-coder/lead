@@ -7,50 +7,55 @@ import {
   Workflow,
   FileText,
   TrendingUp,
-  Wallet,
-  ShoppingCart,
   Link2,
-  Globe,
   KeyRound,
   Settings,
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { useT } from "@/i18n/client";
 
 interface NavItem {
   href: string;
-  label: string;
+  key: string;
   icon: LucideIcon;
 }
 
-const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
+interface NavGroup {
+  titleKey: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    title: "ASOSIY",
+    titleKey: "sidebar.main",
     items: [
-      { href: "/dashboard", label: "Bosh sahifa", icon: LayoutDashboard },
-      { href: "/dashboard/integrations", label: "Integratsiyalar", icon: Workflow },
-      { href: "/dashboard/reports", label: "Hisobotlar", icon: FileText },
-      { href: "/dashboard/lead-tempo", label: "Lid tempi", icon: TrendingUp },
-      { href: "/dashboard/finance", label: "Moliya tahlili", icon: Wallet },
-      { href: "/dashboard/orders", label: "Buyurtmalar", icon: ShoppingCart },
+      { href: "/dashboard", key: "sidebar.home", icon: LayoutDashboard },
+      { href: "/dashboard/integrations", key: "sidebar.integrations", icon: Workflow },
+      { href: "/dashboard/reports", key: "sidebar.reports", icon: FileText },
+      { href: "/dashboard/lead-tempo", key: "sidebar.leadTempo", icon: TrendingUp },
+      // "Moliya tahlili" (finance) sidebardan vaqtincha olib tashlangan —
+      // sahifa saqlangan; keyinroq qayta ulash uchun yetarli.
+      // "Obuna sotib olish" (orders) sidebardan vaqtincha olib tashlangan —
+      // sahifa va API saqlangan; keyinroq qayta ulash uchun yetarli.
     ],
   },
   {
-    title: "RESURSLAR",
+    titleKey: "sidebar.resources",
     items: [
-      { href: "/dashboard/connections", label: "Ulanishlar", icon: Link2 },
-      { href: "/dashboard/domains", label: "Domenlar", icon: Globe },
-      { href: "/dashboard/api-keys", label: "API Kalitlar", icon: KeyRound },
+      { href: "/dashboard/connections", key: "sidebar.connections", icon: Link2 },
+      { href: "/dashboard/api-keys", key: "sidebar.apiKeys", icon: KeyRound },
     ],
   },
   {
-    title: "HISOB",
-    items: [{ href: "/dashboard/settings", label: "Sozlamalar", icon: Settings }],
+    titleKey: "sidebar.account",
+    items: [{ href: "/dashboard/settings", key: "sidebar.settings", icon: Settings }],
   },
 ];
 
 export function Sidebar({ className = "" }: { className?: string }) {
   const pathname = usePathname();
+  const { t } = useT();
 
   return (
     <aside className={`w-64 shrink-0 border-r border-border bg-surface/50 flex flex-col ${className}`}>
@@ -63,8 +68,8 @@ export function Sidebar({ className = "" }: { className?: string }) {
 
       <nav className="flex-1 px-3 space-y-6 overflow-y-auto">
         {NAV_GROUPS.map((group) => (
-          <div key={group.title}>
-            <p className="px-2 mb-1.5 text-[11px] font-medium tracking-wider text-muted">{group.title}</p>
+          <div key={group.titleKey}>
+            <p className="px-2 mb-1.5 text-[11px] font-medium tracking-wider text-muted">{t(group.titleKey)}</p>
             <div className="space-y-0.5">
               {group.items.map((item) => {
                 const isActive =
@@ -81,7 +86,7 @@ export function Sidebar({ className = "" }: { className?: string }) {
                     }`}
                   >
                     <Icon className="size-4 shrink-0" />
-                    {item.label}
+                    {t(item.key)}
                   </Link>
                 );
               })}

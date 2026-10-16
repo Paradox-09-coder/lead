@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { connectDB } from "@/lib/mongodb";
-import { Connection } from "@/models/Connection";
-import { Integration } from "@/models/Integration";
-import { DeliveredLead } from "@/models/DeliveredLead";
-import { pushLeadToCrm, type LeadFields } from "@/lib/crm-push";
-import { FACEBOOK_GRAPH_VERSION } from "@/lib/facebook-oauth";
+import { processFacebookLead, type LeadgenChangeValue } from "@/lib/lead-delivery";
 
 export const runtime = "nodejs";
 
@@ -24,12 +20,6 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ error: "Verification failed" }, { status: 403 });
 }
 
-interface LeadgenChangeValue {
-  form_id: string;
-  leadgen_id: string;
-  page_id: string;
-}
-
 interface WebhookEntry {
   changes?: { field: string; value: LeadgenChangeValue }[];
 }
@@ -37,60 +27,6 @@ interface WebhookEntry {
 interface WebhookBody {
   object?: string;
   entry?: WebhookEntry[];
-}
-
-interface FacebookFieldDatum {
-  name: string;
-  values?: string[];
-}
-
-function extractFields(fieldData: FacebookFieldDatum[]): LeadFields {
-  const fields: LeadFields = {};
-  for (const item of fieldData) {
-    const key = item.name.toLowerCase();
-    const value = item.values?.[0];
-    if (!value) continue;
-    if (key.includes("name")) fields.name = value;
-    else if (key.includes("email")) fields.email = value;
-    else if (key.includes("phone")) fields.phone = value;
-  }
-  return fields;
-}
-
-async function deliverLead(value: LeadgenChangeValue): Promise<void> {
-  const alreadyDelivered = await DeliveredLead.findOne({ leadgenId: value.leadgen_id });
-  if (alreadyDelivered) return;
-
-  const integration = await Integration.findOne({
-    pageId: value.page_id,
-    formId: value.form_id,
-    status: "active",
-  });
-  if (!integration) return;
-
-  const [facebookConnection, targetConnection] = await Promise.all([
-    Connection.findById(integration.facebookConnection).select("+pageAccessToken"),
-    Connection.findById(integration.targetConnection).select("+webhookUrl +jwtToken"),
-  ]);
-  if (!facebookConnection || !targetConnection) return;
-
-  const leadUrl = new URL(`https://graph.facebook.com/${FACEBOOK_GRAPH_VERSION}/${value.leadgen_id}`);
-  leadUrl.searchParams.set("access_token", facebookConnection.pageAccessToken!);
-  const leadResponse = await fetch(leadUrl);
-  const leadBody = await leadResponse.json();
-  if (!leadResponse.ok) return;
-
-  const fields = extractFields(leadBody.field_data ?? []);
-
-  let crmLeadId: string | undefined;
-  try {
-    crmLeadId = await pushLeadToCrm(targetConnection, fields, integration.stageId);
-  } catch {
-    // Don't record a DeliveredLead on failure, so a resend can still be delivered.
-    return;
-  }
-
-  await DeliveredLead.create({ leadgenId: value.leadgen_id, integration: integration._id, crmLeadId });
 }
 
 export async function POST(request: NextRequest) {
@@ -126,7 +62,7 @@ export async function POST(request: NextRequest) {
       if (change.field !== "leadgen") continue;
       // Swallow per-lead failures so one bad entry can't affect others, and
       // so Facebook doesn't retry-storm on an application-side error.
-      await deliverLead(change.value).catch(() => {});
+      await processFacebookLead(change.value).catch(() => {});
     }
   }
 

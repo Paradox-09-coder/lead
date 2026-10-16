@@ -1,19 +1,23 @@
+"use client";
+
 import Link from "next/link";
 import { Circle, ChevronRight } from "lucide-react";
+import { useT } from "@/i18n/client";
 
-const CHECKLIST_ITEMS = [
-  { href: "/dashboard/connections", label: "Facebook yoki Google hisobini ulash" },
-  { href: "/dashboard/integrations", label: "Birinchi integratsiyani qo'shish" },
+const ITEMS = [
+  { href: "/dashboard/connections", key: "dashboardHome.checklistConnect" },
+  { href: "/dashboard/integrations", key: "dashboardHome.checklistIntegration" },
 ];
 
 export function ChecklistCard() {
+  const { t } = useT();
   return (
     <div className="rounded-xl border border-border bg-surface p-6">
-      <h2 className="font-semibold">Boshlashga tayyormisiz?</h2>
-      <p className="mt-1 text-sm text-muted">Birinchi lidlaringizni qabul qilish uchun 2 ta qadam qoldi</p>
+      <h2 className="font-semibold">{t("dashboardHome.checklistTitle")}</h2>
+      <p className="mt-1 text-sm text-muted">{t("dashboardHome.checklistSub")}</p>
 
       <div className="mt-4 space-y-2">
-        {CHECKLIST_ITEMS.map((item) => (
+        {ITEMS.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -21,7 +25,7 @@ export function ChecklistCard() {
           >
             <span className="flex items-center gap-2.5 text-sm">
               <Circle className="size-4 text-muted" />
-              {item.label}
+              {t(item.key)}
             </span>
             <ChevronRight className="size-4 text-muted" />
           </Link>

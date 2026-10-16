@@ -6,9 +6,11 @@ import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { GoogleAuthButton } from "@/components/GoogleAuthButton";
 import { registerUser } from "@/lib/auth-client";
+import { useT } from "@/i18n/client";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useT();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,7 +27,7 @@ export default function RegisterPage() {
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ro'yxatdan o'tishda xatolik yuz berdi");
+      setError(err instanceof Error ? err.message : t("auth.registerError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -40,23 +42,23 @@ export default function RegisterPage() {
         </Link>
 
         <div className="rounded-xl border border-border bg-surface p-8">
-          <h1 className="text-xl font-semibold text-center">Ro&apos;yxatdan o&apos;tish</h1>
-          <p className="mt-1 text-sm text-muted text-center">Bir necha soniyada bepul akkaunt oching</p>
+          <h1 className="text-xl font-semibold text-center">{t("auth.registerTitle")}</h1>
+          <p className="mt-1 text-sm text-muted text-center">{t("auth.registerSub")}</p>
 
           <div className="mt-6">
-            <GoogleAuthButton label="Google bilan davom etish" />
+            <GoogleAuthButton label={t("auth.googleRegister")} />
           </div>
 
           <div className="my-6 flex items-center gap-3 text-xs text-muted">
             <div className="h-px flex-1 bg-border" />
-            yoki
+            {t("common.or")}
             <div className="h-px flex-1 bg-border" />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium" htmlFor="fullName">
-                Ism
+                {t("auth.fullName")}
               </label>
               <input
                 id="fullName"
@@ -69,7 +71,7 @@ export default function RegisterPage() {
             </div>
             <div>
               <label className="block text-sm font-medium" htmlFor="email">
-                Email
+                {t("auth.email")}
               </label>
               <input
                 id="email"
@@ -82,7 +84,7 @@ export default function RegisterPage() {
             </div>
             <div>
               <label className="block text-sm font-medium" htmlFor="password">
-                Parol
+                {t("auth.password")}
               </label>
               <input
                 id="password"
@@ -102,15 +104,15 @@ export default function RegisterPage() {
               disabled={isSubmitting}
               className="w-full rounded-md bg-primary hover:bg-primary-hover text-white py-2.5 font-medium transition-colors disabled:opacity-50"
             >
-              {isSubmitting ? "Yuborilmoqda..." : "Ro'yxatdan o'tish"}
+              {isSubmitting ? t("common.submitting") : t("auth.registerSubmit")}
             </button>
           </form>
         </div>
 
         <p className="mt-6 text-center text-sm text-muted">
-          Akkauntingiz bormi?{" "}
+          {t("auth.hasAccount")}{" "}
           <Link href="/login" className="text-foreground hover:text-primary transition-colors">
-            Kirish
+            {t("auth.loginTitle")}
           </Link>
         </p>
       </div>

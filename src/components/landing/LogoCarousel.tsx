@@ -1,11 +1,15 @@
 import { CAROUSEL_LOGOS } from "@/lib/mock-data";
+import { getT } from "@/i18n/server";
 
-export function LogoCarousel() {
+export async function LogoCarousel() {
+  const { t } = await getT();
   const track = [...CAROUSEL_LOGOS, ...CAROUSEL_LOGOS];
 
   return (
     <section className="border-y border-border bg-surface/50 py-10 overflow-hidden">
-      <p className="text-center text-xs tracking-widest text-muted uppercase mb-6">Integratsiyalar</p>
+      <p className="text-center text-xs tracking-widest text-muted uppercase mb-6">
+        {t("logoCarousel.title")}
+      </p>
       <div className="flex w-max animate-marquee">
         {track.map((logo, index) => (
           <div key={`${logo.name}-${index}`} className="flex items-center gap-2 px-8 shrink-0">
