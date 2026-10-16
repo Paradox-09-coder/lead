@@ -1,4 +1,11 @@
-import type { LeadDocument } from "@/models/Lead";
+import type { LeadDocument, LeadSource } from "@/models/Lead";
+
+// i18n key for how each lead source is labelled in dashboard tables.
+export const LEAD_SOURCE_KEYS: Record<LeadSource, string> = {
+  facebook: "leadTempo.sourceFacebook",
+  api: "leadTempo.sourceApi",
+  form: "leadTempo.sourceForm",
+};
 
 // The shape of a lead in the public API (and in dashboard tables): no internal
 // ids of other collections, no raw Facebook payload.

@@ -1,7 +1,7 @@
 import { Connection } from "@/models/Connection";
 import { Integration } from "@/models/Integration";
 import { Lead, type LeadDocument } from "@/models/Lead";
-import { pushLeadToCrm, type LeadFields } from "@/lib/crm-push";
+import { pushLeadToCrm, type CrmLeadMeta, type LeadFields } from "@/lib/crm-push";
 import { FACEBOOK_GRAPH_VERSION } from "@/lib/facebook-oauth";
 
 export interface FacebookFieldDatum {
@@ -33,6 +33,31 @@ export function extractFields(fieldData: FacebookFieldDatum[]): LeadFields {
   return fields;
 }
 
+const UTM_KEYS = ["source", "medium", "campaign", "content", "term"] as const;
+
+function crmLeadMeta(lead: LeadDocument): CrmLeadMeta {
+  const name = lead.fields?.name;
+  if (lead.source === "form") {
+    const formName = lead.webFormName ?? "Veb-forma";
+    const utm = lead.utm;
+    const utmLine = utm
+      ? UTM_KEYS.filter((key) => utm[key])
+          .map((key) => `utm_${key}=${utm[key]}`)
+          .join(", ")
+      : "";
+    return {
+      title: name ? `${formName} — ${name}` : formName,
+      sourceId: "WEB",
+      sourceDescription: [`LeadSync veb-forma: ${formName}`, utmLine].filter(Boolean).join("\n"),
+      utm,
+    };
+  }
+  if (lead.source === "api") {
+    return { title: name ? `API lead — ${name}` : "API lead", sourceId: "OTHER" };
+  }
+  return { title: name ? `Facebook lead — ${name}` : "Facebook lead", sourceId: "FACEBOOK" };
+}
+
 // Sends a stored lead to its CRM connection and records the outcome on the lead.
 export async function deliverLeadToCrm(lead: LeadDocument): Promise<LeadDocument> {
   if (!lead.targetConnection) {
@@ -44,7 +69,7 @@ export async function deliverLeadToCrm(lead: LeadDocument): Promise<LeadDocument
   const connection = await Connection.findById(lead.targetConnection).select("+webhookUrl +jwtToken");
   try {
     if (!connection) throw new Error("CRM ulanishi topilmadi (o'chirilgan bo'lishi mumkin)");
-    lead.crmLeadId = await pushLeadToCrm(connection, lead.fields, lead.stageId);
+    lead.crmLeadId = await pushLeadToCrm(connection, lead.fields, lead.stageId, crmLeadMeta(lead));
     lead.status = "success";
     lead.errorMessage = undefined;
   } catch (error) {

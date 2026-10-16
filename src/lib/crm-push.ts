@@ -1,9 +1,19 @@
 import type { ConnectionDocument } from "@/models/Connection";
+import type { LeadUtm } from "@/models/Lead";
 
 export interface LeadFields {
   name?: string;
   phone?: string;
   email?: string;
+}
+
+// How the lead is labelled in the CRM: card title, Bitrix24 SOURCE_ID, and
+// the UTM tags it arrived with (web forms only).
+export interface CrmLeadMeta {
+  title: string;
+  sourceId: string;
+  sourceDescription?: string;
+  utm?: LeadUtm;
 }
 
 // Pushes a lead into Bitrix24 via crm.lead.add on the connection's inbound
@@ -12,6 +22,7 @@ async function pushToBitrix24(
   connection: ConnectionDocument,
   fields: LeadFields,
   stageId: string | undefined,
+  meta: CrmLeadMeta,
 ): Promise<string> {
   const url = new URL(
     "crm.lead.add",
@@ -23,12 +34,18 @@ async function pushToBitrix24(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       fields: {
-        TITLE: fields.name ? `Facebook lead — ${fields.name}` : "Facebook lead",
+        TITLE: meta.title,
         NAME: fields.name,
         PHONE: fields.phone ? [{ VALUE: fields.phone, VALUE_TYPE: "WORK" }] : undefined,
         EMAIL: fields.email ? [{ VALUE: fields.email, VALUE_TYPE: "WORK" }] : undefined,
-        SOURCE_ID: "FACEBOOK",
+        SOURCE_ID: meta.sourceId,
+        SOURCE_DESCRIPTION: meta.sourceDescription,
         STATUS_ID: stageId || undefined,
+        UTM_SOURCE: meta.utm?.source,
+        UTM_MEDIUM: meta.utm?.medium,
+        UTM_CAMPAIGN: meta.utm?.campaign,
+        UTM_CONTENT: meta.utm?.content,
+        UTM_TERM: meta.utm?.term,
       },
     }),
   });
@@ -47,6 +64,7 @@ async function pushToAmoCrm(
   connection: ConnectionDocument,
   fields: LeadFields,
   stageId: string | undefined,
+  meta: CrmLeadMeta,
 ): Promise<string> {
   const base = connection.accountUrl!.replace(/\/$/, "");
 
@@ -66,7 +84,7 @@ async function pushToAmoCrm(
     },
     body: JSON.stringify([
       {
-        name: fields.name ? `Facebook lead — ${fields.name}` : "Facebook lead",
+        name: meta.title,
         status_id: stageId ? Number(stageId) : undefined,
         _embedded: {
           contacts: [
@@ -92,12 +110,13 @@ export async function pushLeadToCrm(
   connection: ConnectionDocument,
   fields: LeadFields,
   stageId: string | undefined,
+  meta: CrmLeadMeta,
 ): Promise<string> {
   if (connection.platform === "bitrix24") {
-    return pushToBitrix24(connection, fields, stageId);
+    return pushToBitrix24(connection, fields, stageId, meta);
   }
   if (connection.platform === "amocrm") {
-    return pushToAmoCrm(connection, fields, stageId);
+    return pushToAmoCrm(connection, fields, stageId, meta);
   }
   throw new Error(`${connection.platform} uchun lead yuborish qo'llab-quvvatlanmaydi`);
 }

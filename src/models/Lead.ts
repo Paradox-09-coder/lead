@@ -2,14 +2,27 @@ import mongoose, { Schema } from "mongoose";
 
 export type LeadStatus = "pending" | "success" | "failed" | "saved";
 
-// One record per lead that reached LeadSync — from a Facebook lead form or
-// from an external app through the public API. `saved` means the lead was
-// stored but there was no CRM connection to deliver it to.
+export type LeadSource = "facebook" | "api" | "form";
+
+export interface LeadUtm {
+  source?: string;
+  medium?: string;
+  campaign?: string;
+  content?: string;
+  term?: string;
+}
+
+// One record per lead that reached LeadSync — from a Facebook lead form, a
+// LeadSync web form, or an external app through the public API. `saved` means
+// the lead was stored but there was no CRM connection to deliver it to.
 export interface LeadDocument extends mongoose.Document {
   user: mongoose.Types.ObjectId;
-  source: "facebook" | "api";
+  source: LeadSource;
   leadgenId?: string;
   integration?: mongoose.Types.ObjectId;
+  webForm?: mongoose.Types.ObjectId;
+  webFormName?: string;
+  utm?: LeadUtm;
   targetConnection?: mongoose.Types.ObjectId;
   stageId?: string;
   pageId?: string;
@@ -27,10 +40,19 @@ export interface LeadDocument extends mongoose.Document {
 const leadSchema = new Schema<LeadDocument>(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    source: { type: String, enum: ["facebook", "api"], required: true },
+    source: { type: String, enum: ["facebook", "api", "form"], required: true },
     // Unique per Facebook lead so a webhook redelivery never duplicates it.
     leadgenId: { type: String, unique: true, sparse: true },
     integration: { type: Schema.Types.ObjectId, ref: "Integration" },
+    webForm: { type: Schema.Types.ObjectId, ref: "WebForm" },
+    webFormName: { type: String },
+    utm: {
+      source: { type: String },
+      medium: { type: String },
+      campaign: { type: String },
+      content: { type: String },
+      term: { type: String },
+    },
     targetConnection: { type: Schema.Types.ObjectId, ref: "Connection" },
     stageId: { type: String },
     pageId: { type: String },

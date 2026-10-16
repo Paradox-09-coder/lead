@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Workflow,
   FileText,
+  FileInput,
   TrendingUp,
   Link2,
   KeyRound,
@@ -32,6 +33,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/dashboard", key: "sidebar.home", icon: LayoutDashboard },
       { href: "/dashboard/integrations", key: "sidebar.integrations", icon: Workflow },
+      { href: "/dashboard/forms", key: "sidebar.forms", icon: FileInput },
       { href: "/dashboard/reports", key: "sidebar.reports", icon: FileText },
       { href: "/dashboard/lead-tempo", key: "sidebar.leadTempo", icon: TrendingUp },
       // "Moliya tahlili" (finance) sidebardan vaqtincha olib tashlangan —

@@ -6,6 +6,7 @@ import { getSessionUserId } from "@/lib/server-session";
 import { getT } from "@/i18n/server";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RetryButton } from "@/components/RetryButton";
+import { LEAD_SOURCE_KEYS } from "@/lib/public-lead";
 
 export default async function LeadDetailPage({
   params,
@@ -25,7 +26,7 @@ export default async function LeadDetailPage({
     [t("leadTempo.fieldName"), lead.fields?.name ?? "—"],
     [t("leadTempo.fieldPhone"), lead.fields?.phone ?? "—"],
     [t("leadTempo.fieldEmail"), lead.fields?.email ?? "—"],
-    [t("leadTempo.fieldSource"), lead.source === "facebook" ? t("leadTempo.sourceFacebook") : t("leadTempo.sourceApi")],
+    [t("leadTempo.fieldSource"), t(LEAD_SOURCE_KEYS[lead.source])],
     [t("leadTempo.fieldCrmId"), lead.crmLeadId ?? "—"],
     [t("leadTempo.fieldRetries"), String(lead.retryCount)],
     [t("leadTempo.fieldCreated"), lead.createdAt.toLocaleString(localeTag)],
@@ -33,6 +34,13 @@ export default async function LeadDetailPage({
   ];
   if (lead.source === "facebook") {
     details.push([t("leadTempo.fieldPageId"), lead.pageId ?? "—"], [t("leadTempo.fieldFormId"), lead.formId ?? "—"]);
+  }
+  if (lead.source === "form") {
+    details.push([t("leadTempo.fieldWebForm"), lead.webFormName ?? "—"]);
+    for (const key of ["source", "medium", "campaign", "content", "term"] as const) {
+      const value = lead.utm?.[key];
+      if (value) details.push([`utm_${key}`, value]);
+    }
   }
 
   return (
