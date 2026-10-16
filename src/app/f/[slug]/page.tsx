@@ -4,7 +4,6 @@ import { connectDB } from "@/lib/mongodb";
 import { WebForm } from "@/models/WebForm";
 import { Logo } from "@/components/Logo";
 import { PublicLeadForm } from "@/components/PublicLeadForm";
-import { getT } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +30,6 @@ export default async function PublicFormPage({
   const form = await findForm(slug);
   if (!form) notFound();
 
-  const { t } = await getT();
   const param = (key: string) => {
     const value = query[key];
     return typeof value === "string" ? value : undefined;
@@ -44,10 +42,9 @@ export default async function PublicFormPage({
         <span className="text-lg font-semibold">LeadSync</span>
       </div>
       <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-6">
-        <h1 className="text-lg font-semibold text-center">{form.name}</h1>
-        <p className="mt-1 text-sm text-muted text-center">{t("webForms.publicSubtitle")}</p>
         <PublicLeadForm
           slug={form.slug}
+          title={form.name}
           utm={{
             source: param("utm_source"),
             medium: param("utm_medium"),

@@ -15,10 +15,14 @@ interface Utm {
 const INPUT_CLASS =
   "mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary";
 
-export function PublicLeadForm({ slug, utm }: { slug: string; utm: Utm }) {
+// Uzbek numbers are the common case, so the country code is pre-filled; it
+// stays editable for visitors from elsewhere.
+const PHONE_PREFIX = "+998 ";
+
+export function PublicLeadForm({ slug, title, utm }: { slug: string; title: string; utm: Utm }) {
   const { t } = useT();
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(PHONE_PREFIX);
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -49,7 +53,7 @@ export function PublicLeadForm({ slug, utm }: { slug: string; utm: Utm }) {
 
   if (isSent) {
     return (
-      <div className="mt-6 flex flex-col items-center text-center py-6">
+      <div className="flex flex-col items-center text-center py-6">
         <CheckCircle2 className="size-10 text-success" />
         <p className="mt-3 font-medium">{t("webForms.publicThanksTitle")}</p>
         <p className="mt-1 text-sm text-muted">{t("webForms.publicThanksSub")}</p>
@@ -58,7 +62,11 @@ export function PublicLeadForm({ slug, utm }: { slug: string; utm: Utm }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="mb-6 text-center">
+        <h1 className="text-lg font-semibold">{title}</h1>
+        <p className="mt-1 text-sm text-muted">{t("webForms.publicSubtitle")}</p>
+      </div>
       <div>
         <label className="block text-sm font-medium">{t("webForms.publicName")}</label>
         <input
@@ -80,6 +88,7 @@ export function PublicLeadForm({ slug, utm }: { slug: string; utm: Utm }) {
           maxLength={30}
           autoComplete="tel"
           placeholder="+998 90 123 45 67"
+          inputMode="tel"
           className={INPUT_CLASS}
         />
       </div>
