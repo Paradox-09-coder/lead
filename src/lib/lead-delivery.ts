@@ -1,5 +1,5 @@
 import { Connection } from "@/models/Connection";
-import { Integration } from "@/models/Integration";
+import { Integration, type IntegrationDocument } from "@/models/Integration";
 import { Lead, type LeadDocument } from "@/models/Lead";
 import { pushLeadToCrm, type CrmLeadMeta, type LeadFields } from "@/lib/crm-push";
 import { FACEBOOK_GRAPH_VERSION } from "@/lib/facebook-oauth";
@@ -91,6 +91,22 @@ async function fetchFacebookLead(leadgenId: string, pageAccessToken: string): Pr
   return body.field_data ?? [];
 }
 
+// A page+form pair can have several integrations (e.g. a stale one pointing at
+// connections that were since deleted). Pick the newest one whose Facebook and
+// CRM connections still exist; fall back to the newest active one so the
+// failure is recorded against something.
+async function findIntegration(pageId: string, formId: string): Promise<IntegrationDocument | null> {
+  const candidates = await Integration.find({ pageId, formId, status: "active" }).sort({ createdAt: -1 });
+  for (const candidate of candidates) {
+    const [facebookConnection, crmConnection] = await Promise.all([
+      Connection.exists({ _id: candidate.facebookConnection }),
+      Connection.exists({ _id: candidate.targetConnection }),
+    ]);
+    if (facebookConnection && crmConnection) return candidate;
+  }
+  return candidates[0] ?? null;
+}
+
 // Handles one Facebook `leadgen` webhook event: finds the matching integration,
 // downloads the lead, stores it and pushes it to the CRM. Every lead is stored,
 // including failures, so it shows up in "Lid tempi" and can be retried.
@@ -98,11 +114,7 @@ export async function processFacebookLead(value: LeadgenChangeValue): Promise<vo
   const existing = await Lead.findOne({ leadgenId: value.leadgen_id });
   if (existing && existing.status !== "failed") return;
 
-  const integration = await Integration.findOne({
-    pageId: value.page_id,
-    formId: value.form_id,
-    status: "active",
-  });
+  const integration = await findIntegration(value.page_id, value.form_id);
   if (!integration) return;
 
   const lead =
@@ -117,6 +129,10 @@ export async function processFacebookLead(value: LeadgenChangeValue): Promise<vo
       pageId: value.page_id,
       formId: value.form_id,
     });
+  // A re-processed failed lead follows the integration as it is now.
+  lead.integration = integration._id;
+  lead.targetConnection = integration.targetConnection;
+  lead.stageId = integration.stageId;
 
   try {
     const facebookConnection = await Connection.findById(integration.facebookConnection).select(
@@ -143,6 +159,14 @@ export async function retryLead(lead: LeadDocument): Promise<LeadDocument> {
   lead.retryCount += 1;
 
   const hasFields = Boolean(lead.fields?.name || lead.fields?.phone || lead.fields?.email);
+  if (lead.source === "facebook" && lead.pageId && lead.formId) {
+    const current = await findIntegration(lead.pageId, lead.formId);
+    if (current) {
+      lead.integration = current._id;
+      lead.targetConnection = current.targetConnection;
+      lead.stageId = current.stageId;
+    }
+  }
   if (!hasFields && lead.source === "facebook" && lead.leadgenId && lead.integration) {
     try {
       const integration = await Integration.findById(lead.integration);

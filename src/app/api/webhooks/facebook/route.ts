@@ -62,7 +62,9 @@ export async function POST(request: NextRequest) {
       if (change.field !== "leadgen") continue;
       // Swallow per-lead failures so one bad entry can't affect others, and
       // so Facebook doesn't retry-storm on an application-side error.
-      await processFacebookLead(change.value).catch(() => {});
+      await processFacebookLead(change.value).catch((error) => {
+        console.error("[facebook-webhook] lead processing failed", change.value?.leadgen_id, error);
+      });
     }
   }
 
