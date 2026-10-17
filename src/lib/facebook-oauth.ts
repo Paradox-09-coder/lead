@@ -1,9 +1,10 @@
+import { appBaseUrl } from "@/lib/app-url";
+
 export const FACEBOOK_GRAPH_VERSION = "v25.0";
 export const FACEBOOK_OAUTH_STATE_COOKIE = "fb_oauth_state";
 
-// Computed from the incoming request's own origin (rather than hardcoded)
-// so this works unchanged on localhost during development and on whatever
-// domain the app is deployed to in production.
-export function getFacebookRedirectUri(origin: string): string {
-  return `${origin}/api/connections/facebook/callback`;
+// Built from APP_URL, not the request origin: behind Railway's proxy the
+// request origin is https://localhost:8080, which Facebook rejects.
+export function getFacebookRedirectUri(requestOrigin: string): string {
+  return `${appBaseUrl(requestOrigin)}/api/connections/facebook/callback`;
 }

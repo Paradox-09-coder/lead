@@ -1,9 +1,6 @@
 import { randomBytes } from "crypto";
+import { appBaseUrl } from "@/lib/app-url";
 import type { WebFormDocument } from "@/models/WebForm";
-
-export function appBaseUrl(): string {
-  return process.env.APP_URL?.replace(/\/$/, "") ?? "https://leadsync-production-5873.up.railway.app";
-}
 
 // 8 URL-safe characters — short enough to share, unguessable enough that
 // forms can't be enumerated.

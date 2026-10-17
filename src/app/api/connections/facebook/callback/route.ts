@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import { Connection } from "@/models/Connection";
 import { getSessionUserId } from "@/lib/server-session";
 import { FACEBOOK_GRAPH_VERSION, FACEBOOK_OAUTH_STATE_COOKIE, getFacebookRedirectUri } from "@/lib/facebook-oauth";
+import { appBaseUrl } from "@/lib/app-url";
 
 export const runtime = "nodejs";
 
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get("state");
   const oauthError = searchParams.get("error_message") ?? searchParams.get("error");
 
-  const dashboardUrl = new URL("/dashboard/connections", request.url);
+  const dashboardUrl = new URL("/dashboard/connections", appBaseUrl(request.nextUrl.origin));
 
   if (oauthError) {
     dashboardUrl.searchParams.set("facebook_error", oauthError);
