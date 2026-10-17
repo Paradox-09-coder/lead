@@ -4,7 +4,9 @@ import bcrypt from "bcryptjs";
 export interface UserDocument extends mongoose.Document {
   fullName: string;
   email: string;
-  password: string;
+  // Absent for accounts created through Google until the user sets one.
+  password?: string;
+  googleId?: string;
   role: "user" | "admin";
   createdAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
@@ -27,9 +29,19 @@ const userSchema = new Schema<UserDocument>(
     },
     password: {
       type: String,
-      required: [true, "Parol kiritilishi shart"],
+      required: [
+        function (this: UserDocument) {
+          return !this.googleId;
+        },
+        "Parol kiritilishi shart",
+      ],
       minlength: [6, "Parol kamida 6 belgidan iborat bo'lishi kerak"],
       select: false,
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
     },
     role: {
       type: String,
@@ -41,12 +53,14 @@ const userSchema = new Schema<UserDocument>(
 );
 
 userSchema.pre("save", async function hashPassword() {
-  if (!this.isModified("password")) return;
+  if (!this.isModified("password") || !this.password) return;
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-userSchema.methods.comparePassword = function comparePassword(candidate: string) {
+userSchema.methods.comparePassword = async function comparePassword(candidate: string) {
+  // Google-only accounts have no password, so password login simply fails.
+  if (!this.password) return false;
   return bcrypt.compare(candidate, this.password);
 };
 

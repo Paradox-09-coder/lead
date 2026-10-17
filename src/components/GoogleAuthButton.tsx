@@ -1,15 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+// Starts the Google OAuth flow (a full-page navigation, not fetch). When the
+// callback fails it sends the user back here with ?error=..., shown below.
 export function GoogleAuthButton({ label }: { label: string }) {
-  const [showStubNote, setShowStubNote] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the URL once after mount
+    setError(new URLSearchParams(window.location.search).get("error"));
+  }, []);
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => setShowStubNote(true)}
+      <a
+        href="/api/auth/google/start"
         className="w-full flex items-center justify-center gap-2 rounded-md border border-border bg-surface hover:bg-surface-hover px-4 py-2.5 text-sm font-medium transition-colors"
       >
         <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
@@ -28,12 +34,8 @@ export function GoogleAuthButton({ label }: { label: string }) {
           />
         </svg>
         {label}
-      </button>
-      {showStubNote && (
-        <p className="mt-2 text-xs text-muted text-center">
-          Google orqali kirish tez orada faollashadi — hozircha parol orqali davom eting.
-        </p>
-      )}
+      </a>
+      {error && <p className="mt-2 text-xs text-danger text-center">{error}</p>}
     </div>
   );
 }
