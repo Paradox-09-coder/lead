@@ -5,7 +5,7 @@ import { getSessionUserId } from "@/lib/server-session";
 import { getT } from "@/i18n/server";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RetryButton } from "@/components/RetryButton";
-import { LEAD_SOURCE_KEYS } from "@/lib/public-lead";
+import { leadSourceKey } from "@/lib/public-lead";
 
 const FILTER_VALUES: Array<LeadStatus | "all"> = ["all", "success", "failed", "pending", "saved"];
 
@@ -93,7 +93,7 @@ export default async function LeadTempoPage({
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      {t(LEAD_SOURCE_KEYS[lead.source])}
+                      {t(leadSourceKey(lead.source))}
                       {lead.webFormName && <p className="text-xs text-muted">{lead.webFormName}</p>}
                     </td>
                     <td className="py-3 px-4">

@@ -1,7 +1,7 @@
 import type { LeadDocument, LeadSource } from "@/models/Lead";
 
 // i18n key for how each lead source is labelled in dashboard tables.
-export const LEAD_SOURCE_KEYS: Record<LeadSource, string> = {
+const LEAD_SOURCE_KEYS: Record<LeadSource, string> = {
   facebook: "leadTempo.sourceFacebook",
   api: "leadTempo.sourceApi",
   form: "leadTempo.sourceForm",
@@ -22,4 +22,9 @@ export function toPublicLead(lead: LeadDocument) {
     retry_count: lead.retryCount,
     created_at: lead.createdAt,
   };
+}
+
+// Older leads may have been stored without a source, so fall back to the API label.
+export function leadSourceKey(source: LeadSource | undefined): string {
+  return (source && LEAD_SOURCE_KEYS[source]) || LEAD_SOURCE_KEYS.api;
 }

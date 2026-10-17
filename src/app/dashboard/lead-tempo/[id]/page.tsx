@@ -6,7 +6,7 @@ import { getSessionUserId } from "@/lib/server-session";
 import { getT } from "@/i18n/server";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RetryButton } from "@/components/RetryButton";
-import { LEAD_SOURCE_KEYS } from "@/lib/public-lead";
+import { leadSourceKey } from "@/lib/public-lead";
 
 export default async function LeadDetailPage({
   params,
@@ -26,7 +26,7 @@ export default async function LeadDetailPage({
     [t("leadTempo.fieldName"), lead.fields?.name ?? "—"],
     [t("leadTempo.fieldPhone"), lead.fields?.phone ?? "—"],
     [t("leadTempo.fieldEmail"), lead.fields?.email ?? "—"],
-    [t("leadTempo.fieldSource"), t(LEAD_SOURCE_KEYS[lead.source])],
+    [t("leadTempo.fieldSource"), t(leadSourceKey(lead.source))],
     [t("leadTempo.fieldCrmId"), lead.crmLeadId ?? "—"],
     [t("leadTempo.fieldRetries"), String(lead.retryCount)],
     [t("leadTempo.fieldCreated"), lead.createdAt.toLocaleString(localeTag)],
