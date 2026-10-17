@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { RefreshCw } from "lucide-react";
 import { Modal } from "@/components/modals/Modal";
+import { Select } from "@/components/ui/Select";
 import { useT } from "@/i18n/client";
 import { fetchConnections, fetchCrmStages, type Connection, type CrmStage } from "@/lib/connections-client";
 
@@ -112,7 +113,7 @@ export function NewWebFormModal({
           <label className="block text-sm font-medium">
             {t("webForms.sourceLabel")} <span className="text-danger">*</span>
           </label>
-          <select value={source} onChange={(event) => setSource(event.target.value)} required className={INPUT_CLASS}>
+          <Select value={source} onChange={(value) => setSource(value)} required>
             <option value="" className="bg-surface">
               {t("webForms.sourcePlaceholder")}
             </option>
@@ -121,7 +122,7 @@ export function NewWebFormModal({
                 {t(`webForms.source_${s}`)}
               </option>
             ))}
-          </select>
+          </Select>
           <p className="mt-1.5 text-xs text-muted">{t("webForms.sourceHint")}</p>
         </div>
 
@@ -178,12 +179,11 @@ export function NewWebFormModal({
           <label className="block text-sm font-medium">
             {t("webForms.targetLabel")} <span className="text-danger">*</span>
           </label>
-          <select
+          <Select
             value={target}
-            onChange={(event) => handleTargetChange(event.target.value)}
+            onChange={(value) => handleTargetChange(value)}
             required
             disabled={isLoadingConnections}
-            className={INPUT_CLASS}
           >
             <option value="" className="bg-surface">
               {isLoadingConnections ? t("common.loading") : t("webForms.targetPlaceholder")}
@@ -193,7 +193,7 @@ export function NewWebFormModal({
                 {platformName(c.platform)} — {c.label}
               </option>
             ))}
-          </select>
+          </Select>
           {!isLoadingConnections && crmConnections.length === 0 && (
             <p className="mt-1.5 text-xs text-muted">
               {t("webForms.noCrm")}{" "}
@@ -206,11 +206,10 @@ export function NewWebFormModal({
 
         <div>
           <label className="block text-sm font-medium">{t("webForms.stageLabel")}</label>
-          <select
+          <Select
             value={stageId}
-            onChange={(event) => setStageId(event.target.value)}
+            onChange={(value) => setStageId(value)}
             disabled={!target || isLoadingStages}
-            className={INPUT_CLASS}
           >
             <option value="" className="bg-surface">
               {!target
@@ -224,7 +223,7 @@ export function NewWebFormModal({
                 {s.name}
               </option>
             ))}
-          </select>
+          </Select>
           {isLoadingStages && (
             <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
               <RefreshCw className="size-3 animate-spin" />

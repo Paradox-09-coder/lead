@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { Modal } from "@/components/modals/Modal";
+import { Select } from "@/components/ui/Select";
 import { CONNECT_PLATFORMS } from "@/lib/mock-data";
 import { fetchCrmStages, type Connection, type CrmStage } from "@/lib/connections-client";
 import type { Integration, UpdateIntegrationInput } from "@/lib/integrations-client";
@@ -95,7 +96,7 @@ export function EditIntegrationModal({
           <label className="block text-sm font-medium">
             {t("integrationsPage.targetLabel")} <span className="text-danger">*</span>
           </label>
-          <select value={target} onChange={(event) => handleTargetChange(event.target.value)} className={INPUT_CLASS}>
+          <Select value={target} onChange={(value) => handleTargetChange(value)}>
             <option value="" className="bg-surface">
               {t("integrationsPage.targetPlaceholder")}
             </option>
@@ -104,16 +105,16 @@ export function EditIntegrationModal({
                 {platformName(c.platform)} — {c.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div>
           <label className="block text-sm font-medium">{t("integrationsPage.stageLabel")}</label>
-          <select
+          <Select
             value={stageId}
-            onChange={(event) => setStageId(event.target.value)}
+            onChange={(value) => setStageId(value)}
             disabled={!target || isLoadingStages}
-            className={INPUT_CLASS}
+            allowEmpty
           >
             <option value="" className="bg-surface">
               {!target
@@ -127,7 +128,7 @@ export function EditIntegrationModal({
                 {s.name}
               </option>
             ))}
-          </select>
+          </Select>
           {isLoadingStages && (
             <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
               <RefreshCw className="size-3 animate-spin" />

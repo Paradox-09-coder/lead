@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, RefreshCw } from "lucide-react";
 import { Modal } from "@/components/modals/Modal";
+import { Select } from "@/components/ui/Select";
 import { CONNECT_PLATFORMS } from "@/lib/mock-data";
 import {
   fetchFacebookForms,
@@ -161,10 +162,9 @@ export function NewIntegrationModal({
             <label className="block text-sm font-medium">
               {t("integrationsPage.sourceLabel")} <span className="text-danger">*</span>
             </label>
-            <select
+            <Select
               value={source}
-              onChange={(event) => setSource(event.target.value as typeof source)}
-              className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
+              onChange={(value) => setSource(value as typeof source)}
             >
               <option value="" className="bg-surface">
                 {t("integrationsPage.sourcePlaceholder")}
@@ -175,7 +175,7 @@ export function NewIntegrationModal({
               <option value="webhook" className="bg-surface">
                 {t("integrationsPage.sourceWebhook")}
               </option>
-            </select>
+            </Select>
           </div>
 
           {source === "facebook" && (
@@ -184,10 +184,9 @@ export function NewIntegrationModal({
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium">{t("integrationsPage.fbPage")}</label>
-                    <select
+                    <Select
                       value={facebookConnectionId}
-                      onChange={(event) => handleFacebookConnectionChange(event.target.value)}
-                      className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
+                      onChange={(value) => handleFacebookConnectionChange(value)}
                     >
                       <option value="" className="bg-surface">
                         {t("integrationsPage.fbPagePlaceholder")}
@@ -197,15 +196,14 @@ export function NewIntegrationModal({
                           {c.label}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium">{t("integrationsPage.form")}</label>
-                    <select
+                    <Select
                       value={formId}
-                      onChange={(event) => setFormId(event.target.value)}
+                      onChange={(value) => setFormId(value)}
                       disabled={!facebookConnectionId || isLoadingForms}
-                      className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50"
                     >
                       <option value="" className="bg-surface">
                         {isLoadingForms ? t("common.loading") : t("integrationsPage.formPlaceholder")}
@@ -215,7 +213,7 @@ export function NewIntegrationModal({
                           {f.name}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                     {isLoadingForms && (
                       <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
                         <RefreshCw className="size-3 animate-spin" />
@@ -269,9 +267,9 @@ export function NewIntegrationModal({
           </div>
           <div>
             <label className="block text-sm font-medium">{t("integrationsPage.botLabel")}</label>
-            <select className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary">
-              <option className="bg-surface">{t("integrationsPage.botDefault")}</option>
-            </select>
+            <Select value="default" onChange={() => {}}>
+              <option value="default" className="bg-surface">{t("integrationsPage.botDefault")}</option>
+            </Select>
           </div>
         </div>
       )}
@@ -282,10 +280,9 @@ export function NewIntegrationModal({
             <label className="block text-sm font-medium">
               {t("integrationsPage.targetLabel")} <span className="text-danger">*</span>
             </label>
-            <select
+            <Select
               value={target}
-              onChange={(event) => handleTargetChange(event.target.value)}
-              className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
+              onChange={(value) => handleTargetChange(value)}
             >
               <option value="" className="bg-surface">
                 {t("integrationsPage.targetPlaceholder")}
@@ -295,7 +292,7 @@ export function NewIntegrationModal({
                   {platformName(c.platform)} — {c.label}
                 </option>
               ))}
-            </select>
+            </Select>
             {crmConnections.length === 0 && (
               <p className="mt-1.5 text-xs text-muted">
                 {t("integrationsPage.noCrm")}{" "}
@@ -309,11 +306,10 @@ export function NewIntegrationModal({
 
           <div>
             <label className="block text-sm font-medium">{t("integrationsPage.stageLabel")}</label>
-            <select
+            <Select
               value={stageId}
-              onChange={(event) => setStageId(event.target.value)}
+              onChange={(value) => setStageId(value)}
               disabled={!target || isLoadingStages}
-              className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50"
             >
               <option value="" className="bg-surface">
                 {!target
@@ -327,7 +323,7 @@ export function NewIntegrationModal({
                   {s.name}
                 </option>
               ))}
-            </select>
+            </Select>
             {isLoadingStages && (
               <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
                 <RefreshCw className="size-3 animate-spin" />
@@ -342,9 +338,9 @@ export function NewIntegrationModal({
 
           <div>
             <label className="block text-sm font-medium">{t("integrationsPage.assigneeLabel")}</label>
-            <select className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary">
-              <option className="bg-surface">{t("integrationsPage.assigneeDefault")}</option>
-            </select>
+            <Select value="default" onChange={() => {}}>
+              <option value="default" className="bg-surface">{t("integrationsPage.assigneeDefault")}</option>
+            </Select>
             <p className="mt-1.5 text-xs text-muted">{t("integrationsPage.assigneeHint")}</p>
           </div>
 
