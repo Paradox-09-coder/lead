@@ -6,6 +6,7 @@ import { Modal } from "@/components/modals/Modal";
 import { CONNECT_PLATFORMS } from "@/lib/mock-data";
 import { PLATFORM_COLORS } from "@/lib/platforms";
 import { createBitrix24Connection, createAmoCrmConnection, type Connection } from "@/lib/connections-client";
+import { useT } from "@/i18n/client";
 
 function PlatformBadge({ id, name }: { id: string; name: string }) {
   return (
@@ -25,6 +26,7 @@ export function ConnectProfileModal({
   onClose: () => void;
   onConnect: (connection: Connection) => void;
 }) {
+  const { t } = useT();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [webhookUrl, setWebhookUrl] = useState("");
   const [accountUrl, setAccountUrl] = useState("");
@@ -52,7 +54,7 @@ export function ConnectProfileModal({
       onConnect(connection);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ulanmadi");
+      setError(err instanceof Error ? err.message : t("connectModal.connectError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -66,7 +68,7 @@ export function ConnectProfileModal({
       onConnect(connection);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ulanmadi");
+      setError(err instanceof Error ? err.message : t("connectModal.connectError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -74,8 +76,8 @@ export function ConnectProfileModal({
 
   if (!platform) {
     return (
-      <Modal title="Profil ulash" onClose={onClose}>
-        <p className="text-sm text-muted mb-4">Qaysi platformani ulamoqchisiz?</p>
+      <Modal title={t("connectModal.title")} onClose={onClose}>
+        <p className="text-sm text-muted mb-4">{t("connectModal.choose")}</p>
         <div className="grid sm:grid-cols-2 gap-3">
           {CONNECT_PLATFORMS.map((p) => (
             <button
@@ -91,14 +93,14 @@ export function ConnectProfileModal({
                   <PlatformBadge id={p.id} name={p.name} />
                   <div>
                     <p className="text-sm font-medium">{p.name}</p>
-                    <p className="text-xs text-primary">{p.authType}</p>
+                    <p className="text-xs text-primary">{t(p.authTypeKey)}</p>
                   </div>
                 </div>
                 {p.locked ? <Lock className="size-4 text-muted" /> : <ChevronRight className="size-4 text-muted" />}
               </div>
-              <p className="mt-2 text-xs text-muted">{p.description}</p>
+              <p className="mt-2 text-xs text-muted">{t(p.descriptionKey)}</p>
               {p.locked && (
-                <p className="mt-2 text-xs text-warning">Telegram bot ulash faqat pullik tariflarda mavjud</p>
+                <p className="mt-2 text-xs text-warning">{t("connectModal.lockedNote")}</p>
               )}
             </button>
           ))}
@@ -108,52 +110,46 @@ export function ConnectProfileModal({
   }
 
   return (
-    <Modal title="Profil ulash" onClose={onClose}>
+    <Modal title={t("connectModal.title")} onClose={onClose}>
       <button
         onClick={goBack}
         className="flex items-center gap-1 text-sm text-muted hover:text-foreground mb-4"
       >
         <ChevronLeft className="size-4" />
-        Orqaga
+        {t("connectModal.back")}
       </button>
 
       <div className="flex items-center gap-3 mb-6">
         <PlatformBadge id={platform.id} name={platform.name} />
         <div>
           <p className="font-medium">{platform.name}</p>
-          <p className="text-xs text-muted">{platform.description}</p>
+          <p className="text-xs text-muted">{t(platform.descriptionKey)}</p>
         </div>
       </div>
 
       {platform.id === "facebook" && (
         <div className="text-center py-6">
-          <p className="text-sm text-muted">
-            Facebook&apos;ning o&apos;z oynasi ochiladi — u yerda o&apos;z akkauntingiz bilan kirib, sahifalaringizga
-            ruxsat berasiz.
-          </p>
+          <p className="text-sm text-muted">{t("connectModal.fbHint")}</p>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- this hits an API route that issues a server redirect to Facebook's OAuth dialog, not a page */}
           <a
             href="/api/connections/facebook/start"
             className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm transition-colors"
           >
             <ExternalLink className="size-4" />
-            Facebook bilan davom etish
+            {t("connectModal.fbContinue")}
           </a>
         </div>
       )}
 
       {platform.id === "google" && (
         <div className="text-center py-6">
-          <p className="text-sm text-muted">
-            {platform.name} bilan ulanish brauzer orqali ochiladigan OAuth oynasi orqali amalga oshadi. Bu funksiya
-            tez orada faollashadi.
-          </p>
+          <p className="text-sm text-muted">{t("connectModal.googleHint", { name: platform.name })}</p>
           <button
             disabled
             className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary/50 text-white px-4 py-2 text-sm cursor-not-allowed"
           >
             <ExternalLink className="size-4" />
-            {platform.name} bilan davom etish
+            {t("connectModal.continueWith", { name: platform.name })}
           </button>
         </div>
       )}
@@ -168,9 +164,7 @@ export function ConnectProfileModal({
               placeholder="https://yourcompany.bitrix24.com/rest/1/xxxxx/"
               className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
             />
-            <p className="mt-1.5 text-xs text-muted">
-              Bitrix24&apos;da: Ilovalar → Ishlab chiquvchi resurslari → Kiruvchi webhook
-            </p>
+            <p className="mt-1.5 text-xs text-muted">{t("connectModal.bitrixHint")}</p>
           </div>
 
           {error && <p className="text-sm text-danger">{error}</p>}
@@ -181,7 +175,7 @@ export function ConnectProfileModal({
             className="w-full flex items-center justify-center gap-2 rounded-md bg-primary hover:bg-primary-hover disabled:opacity-50 text-white py-2.5 text-sm font-medium transition-colors"
           >
             {isSubmitting && <RefreshCw className="size-4 animate-spin" />}
-            {isSubmitting ? "Tekshirilmoqda..." : "Ulash"}
+            {isSubmitting ? t("connectModal.checking") : t("connectModal.connect")}
           </button>
         </div>
       )}
@@ -193,7 +187,7 @@ export function ConnectProfileModal({
             <input
               value={accountUrl}
               onChange={(event) => setAccountUrl(event.target.value)}
-              placeholder="https://mycompany.amocrm.ru yoki https://mycompany.kommo.com"
+              placeholder={t("connectModal.amoUrlPlaceholder")}
               className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
             />
           </div>
@@ -205,9 +199,7 @@ export function ConnectProfileModal({
               placeholder="eyJhbGciOiJIUzI1NiIs..."
               className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm font-mono outline-none focus:border-primary"
             />
-            <p className="mt-1.5 text-xs text-muted">
-              amoCRM&apos;da: Sozlamalar → Integratsiyalar → Yangi qo&apos;shish → Kalitlar va doiralar
-            </p>
+            <p className="mt-1.5 text-xs text-muted">{t("connectModal.amoHint")}</p>
           </div>
 
           {error && <p className="text-sm text-danger">{error}</p>}
@@ -218,7 +210,7 @@ export function ConnectProfileModal({
             className="w-full flex items-center justify-center gap-2 rounded-md bg-primary hover:bg-primary-hover disabled:opacity-50 text-white py-2.5 text-sm font-medium transition-colors"
           >
             {isSubmitting && <RefreshCw className="size-4 animate-spin" />}
-            {isSubmitting ? "Tekshirilmoqda..." : "Ulash"}
+            {isSubmitting ? t("connectModal.checking") : t("connectModal.connect")}
           </button>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { Zap, Send, Table2, Building2, ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/landing/Reveal";
+import { getT } from "@/i18n/server";
 
 const TARGETS = [
   { icon: Send, label: "Telegram" },
@@ -7,14 +8,14 @@ const TARGETS = [
   { icon: Building2, label: "Bitrix24" },
 ];
 
-export function FlowAnimation() {
+export async function FlowAnimation() {
+  const { t } = await getT();
+
   return (
     <section id="qanday-ishlaydi" className="mx-auto max-w-5xl px-6 py-20">
       <Reveal className="text-center">
-        <h2 className="text-3xl font-bold tracking-tight">Lidlar qanday oqib keladi</h2>
-        <p className="mt-3 text-muted max-w-lg mx-auto">
-          Facebook lid keladi — CRM darhol, hech qanday qo&apos;l bilan tekshirish yo&apos;q
-        </p>
+        <h2 className="text-3xl font-bold tracking-tight">{t("flow.title")}</h2>
+        <p className="mt-3 text-muted max-w-lg mx-auto">{t("flow.subtitle")}</p>
       </Reveal>
 
       <div className="mt-14 flex flex-col md:flex-row items-center justify-center gap-6">
@@ -24,7 +25,7 @@ export function FlowAnimation() {
               f
             </div>
             <p className="mt-3 font-medium text-sm">Facebook Lead Ads</p>
-            <p className="text-xs text-muted mt-1">Foydalanuvchi formani to&apos;ldiradi</p>
+            <p className="text-xs text-muted mt-1">{t("flow.userFills")}</p>
           </div>
         </Reveal>
 
@@ -39,7 +40,7 @@ export function FlowAnimation() {
               <Zap className="size-5 text-primary" />
             </div>
             <p className="mt-3 font-medium text-sm">LeadSync</p>
-            <p className="text-xs text-muted mt-1">Yuborilmoqda...</p>
+            <p className="text-xs text-muted mt-1">{t("flow.sending")}</p>
           </div>
         </Reveal>
 

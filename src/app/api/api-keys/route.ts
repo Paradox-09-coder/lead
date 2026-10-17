@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import { connectDB } from "@/lib/mongodb";
 import { ApiKey } from "@/models/ApiKey";
 import { getSessionUserId } from "@/lib/server-session";
@@ -15,7 +16,7 @@ const MAX_KEYS_PER_USER = 10;
 export async function GET() {
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   await connectDB();
@@ -35,13 +36,13 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   try {
     const { name } = (await request.json()) as { name?: string };
     if (!name?.trim()) {
-      return NextResponse.json({ message: "Kalit nomini kiriting" }, { status: 400 });
+      return localizedJson({ message: "Kalit nomini kiriting" }, { status: 400 });
     }
 
     await connectDB();
@@ -61,6 +62,6 @@ export async function POST(request: NextRequest) {
     );
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }

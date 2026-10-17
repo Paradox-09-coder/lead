@@ -9,13 +9,14 @@ import { CONNECT_PLATFORMS } from "@/lib/mock-data";
 import { PLATFORM_COLORS } from "@/lib/platforms";
 import { deleteConnection as deleteConnectionApi } from "@/lib/connections-client";
 import { useT } from "@/i18n/client";
+import { translateMessage } from "@/i18n/messages";
 
 function platformName(platform: string): string {
   return CONNECT_PLATFORMS.find((p) => p.id === platform)?.name ?? platform;
 }
 
 export default function ConnectionsPage() {
-  const { t } = useT();
+  const { t, locale } = useT();
   const { connections, isLoadingConnections, addConnection, removeConnection } = useMockData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -78,7 +79,7 @@ export default function ConnectionsPage() {
       {facebookError && (
         <div className="mt-4 flex items-center gap-2 rounded-md border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           <CircleAlert className="size-4 shrink-0" />
-          <span className="flex-1">{facebookError}</span>
+          <span className="flex-1">{translateMessage(facebookError, locale)}</span>
           <button onClick={dismissBanner} aria-label={t("common.close")} className="shrink-0">
             <X className="size-4" />
           </button>

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import { cookies } from "next/headers";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
@@ -16,13 +17,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? await verifySessionToken(token) : null;
   if (!session?.userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   try {
     const { status } = (await request.json()) as { status?: string };
     if (status !== "paid" && status !== "cancelled") {
-      return NextResponse.json({ message: "status: paid | cancelled" }, { status: 400 });
+      return localizedJson({ message: "status: paid | cancelled" }, { status: 400 });
     }
 
     await connectDB();
@@ -30,15 +31,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // Admin rights come from the database, not from the (client-held) token.
     const isAdmin = status === "paid" && (await User.findById(session.userId))?.role === "admin";
     if (status === "paid" && !isAdmin) {
-      return NextResponse.json({ message: "Ruxsat yo'q" }, { status: 403 });
+      return localizedJson({ message: "Ruxsat yo'q" }, { status: 403 });
     }
 
     const order = await Order.findOne(isAdmin ? { _id: id } : { _id: id, user: session.userId });
     if (!order) {
-      return NextResponse.json({ message: "Buyurtma topilmadi" }, { status: 404 });
+      return localizedJson({ message: "Buyurtma topilmadi" }, { status: 404 });
     }
     if (order.status !== "pending") {
-      return NextResponse.json({ message: "Faqat kutilayotgan buyurtmani o'zgartirish mumkin" }, { status: 409 });
+      return localizedJson({ message: "Faqat kutilayotgan buyurtmani o'zgartirish mumkin" }, { status: 409 });
     }
 
     order.status = status;
@@ -47,6 +48,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ ok: true, status: order.status });
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }

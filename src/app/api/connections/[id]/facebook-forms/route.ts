@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import { connectDB } from "@/lib/mongodb";
 import { Connection } from "@/models/Connection";
 import { getSessionUserId } from "@/lib/server-session";
@@ -11,7 +12,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   try {
@@ -21,7 +22,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     );
 
     if (!connection) {
-      return NextResponse.json({ message: "Facebook ulanishi topilmadi" }, { status: 404 });
+      return localizedJson({ message: "Facebook ulanishi topilmadi" }, { status: 404 });
     }
 
     const formsUrl = new URL(
@@ -34,7 +35,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const body = await response.json();
 
     if (!response.ok) {
-      return NextResponse.json({ message: body?.error?.message ?? "Formalar ro'yxati olinmadi" }, { status: 502 });
+      return localizedJson({ message: body?.error?.message ?? "Formalar ro'yxati olinmadi" }, { status: 502 });
     }
 
     const forms = (body.data ?? []).map((form: { id: string; name: string; status: string }) => ({
@@ -45,6 +46,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json(forms);
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }

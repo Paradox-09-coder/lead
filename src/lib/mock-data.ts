@@ -141,40 +141,41 @@ export interface ActivityItem {
 
 export const RECENT_ACTIVITY: ActivityItem[] = [];
 
+// Display texts are i18n keys (platforms.*), resolved with t() where shown.
 export const CONNECT_PLATFORMS = [
   {
     id: "facebook",
     name: "Facebook",
-    authType: "OAuth ulanish",
-    description: "Facebook Lead Ads orqali lid qabul qilish",
+    authTypeKey: "platforms.oauth",
+    descriptionKey: "platforms.facebookDesc",
     locked: false,
   },
   {
     id: "google",
     name: "Google",
-    authType: "OAuth ulanish",
-    description: "Google Sheets'ga lidlarni jamlash",
+    authTypeKey: "platforms.oauth",
+    descriptionKey: "platforms.googleDesc",
     locked: false,
   },
   {
     id: "bitrix24",
     name: "Bitrix24",
-    authType: "Webhook URL",
-    description: "CRM portalini webhook URL orqali ulash",
+    authTypeKey: "platforms.webhookUrl",
+    descriptionKey: "platforms.bitrix24Desc",
     locked: false,
   },
   {
     id: "amocrm",
     name: "amoCRM / Kommo",
-    authType: "JWT Token",
-    description: "amoCRM yoki Kommo akkauntni JWT token bilan ulash",
+    authTypeKey: "platforms.jwtToken",
+    descriptionKey: "platforms.amocrmDesc",
     locked: false,
   },
   {
     id: "telegram",
     name: "Telegram bot",
-    authType: "Bot token",
-    description: "O'z Telegram botingiz orqali lidlarni guruh yoki kanalga yetkazish",
+    authTypeKey: "platforms.botToken",
+    descriptionKey: "platforms.telegramDesc",
     locked: true,
   },
 ] as const;

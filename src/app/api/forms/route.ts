@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import { connectDB } from "@/lib/mongodb";
 import { Connection } from "@/models/Connection";
 import { WebForm, WEB_FORM_SOURCES, type WebFormSource } from "@/models/WebForm";
@@ -13,7 +14,7 @@ const MAX_TEXT = 120;
 export async function GET() {
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   await connectDB();
@@ -31,7 +32,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   try {
@@ -43,10 +44,10 @@ export async function POST(request: NextRequest) {
     const source = text(body.source) as WebFormSource | undefined;
     const targetConnectionId = text(body.targetConnectionId);
     if (!name || !source || !targetConnectionId) {
-      return NextResponse.json({ message: "Manba, forma nomi va CRM tanlanishi shart" }, { status: 400 });
+      return localizedJson({ message: "Manba, forma nomi va CRM tanlanishi shart" }, { status: 400 });
     }
     if (!WEB_FORM_SOURCES.includes(source)) {
-      return NextResponse.json({ message: "Manba noto'g'ri" }, { status: 400 });
+      return localizedJson({ message: "Manba noto'g'ri" }, { status: 400 });
     }
 
     await connectDB();
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
       platform: { $in: ["bitrix24", "amocrm"] },
     });
     if (!targetConnection) {
-      return NextResponse.json({ message: "CRM ulanishi topilmadi" }, { status: 404 });
+      return localizedJson({ message: "CRM ulanishi topilmadi" }, { status: 404 });
     }
 
     const form = await WebForm.create({
@@ -74,6 +75,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(toPublicWebForm(form, targetConnection.label), { status: 201 });
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import { connectDB } from "@/lib/mongodb";
 import { Connection } from "@/models/Connection";
 import { Integration } from "@/models/Integration";
@@ -13,7 +14,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { id } = await params;
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   try {
@@ -28,17 +29,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     await connectDB();
     const integration = await Integration.findOne({ _id: id, user: userId });
     if (!integration) {
-      return NextResponse.json({ message: "Integratsiya topilmadi" }, { status: 404 });
+      return localizedJson({ message: "Integratsiya topilmadi" }, { status: 404 });
     }
 
     if (body.name !== undefined) {
       const name = body.name.trim();
-      if (!name) return NextResponse.json({ message: "Nom bo'sh bo'lmasligi kerak" }, { status: 400 });
+      if (!name) return localizedJson({ message: "Nom bo'sh bo'lmasligi kerak" }, { status: 400 });
       integration.name = name.slice(0, 120);
     }
     if (body.status !== undefined) {
       if (body.status !== "active" && body.status !== "paused") {
-        return NextResponse.json({ message: "Holat noto'g'ri" }, { status: 400 });
+        return localizedJson({ message: "Holat noto'g'ri" }, { status: 400 });
       }
       integration.status = body.status;
     }
@@ -48,7 +49,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         user: userId,
         platform: { $in: ["bitrix24", "amocrm"] },
       });
-      if (!target) return NextResponse.json({ message: "CRM ulanishi topilmadi" }, { status: 404 });
+      if (!target) return localizedJson({ message: "CRM ulanishi topilmadi" }, { status: 404 });
       integration.targetConnection = target._id;
     }
     if (body.stageId !== undefined) integration.stageId = body.stageId || undefined;
@@ -58,7 +59,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ ok: true });
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }
 
@@ -66,19 +67,19 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { id } = await params;
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   try {
     await connectDB();
     const integration = await Integration.findOne({ _id: id, user: userId });
     if (!integration) {
-      return NextResponse.json({ message: "Integratsiya topilmadi" }, { status: 404 });
+      return localizedJson({ message: "Integratsiya topilmadi" }, { status: 404 });
     }
     await integration.deleteOne();
     return NextResponse.json({ ok: true });
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }

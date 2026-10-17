@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import crypto from "node:crypto";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
@@ -20,13 +21,13 @@ function hashCode(code: string): string {
 export async function POST(request: NextRequest) {
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   try {
     const { code, newPassword } = (await request.json()) as { code?: string; newPassword?: string };
     if (!code?.trim() || !/^\d{6}$/.test(code.trim())) {
-      return NextResponse.json({ message: "Kodni to'g'ri kiriting" }, { status: 400 });
+      return localizedJson({ message: "Kodni to'g'ri kiriting" }, { status: 400 });
     }
     if (!newPassword || newPassword.length < MIN_PASSWORD) {
       return NextResponse.json(
@@ -39,22 +40,22 @@ export async function POST(request: NextRequest) {
     const record = await PasswordResetCode.findOne({ user: userId });
     if (!record || record.expiresAt < new Date()) {
       if (record) await record.deleteOne();
-      return NextResponse.json({ message: "Kod topilmadi yoki muddati tugagan" }, { status: 400 });
+      return localizedJson({ message: "Kod topilmadi yoki muddati tugagan" }, { status: 400 });
     }
 
     if (record.codeHash !== hashCode(code.trim())) {
       record.attempts += 1;
       if (record.attempts >= MAX_ATTEMPTS) {
         await record.deleteOne();
-        return NextResponse.json({ message: "Juda ko'p noto'g'ri urinish, yangi kod so'rang" }, { status: 400 });
+        return localizedJson({ message: "Juda ko'p noto'g'ri urinish, yangi kod so'rang" }, { status: 400 });
       }
       await record.save();
-      return NextResponse.json({ message: "Kod noto'g'ri" }, { status: 400 });
+      return localizedJson({ message: "Kod noto'g'ri" }, { status: 400 });
     }
 
     const user = await User.findById(userId).select("+password");
     if (!user) {
-      return NextResponse.json({ message: "Foydalanuvchi topilmadi" }, { status: 404 });
+      return localizedJson({ message: "Foydalanuvchi topilmadi" }, { status: 404 });
     }
     user.password = newPassword;
     await user.save();
@@ -63,6 +64,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }

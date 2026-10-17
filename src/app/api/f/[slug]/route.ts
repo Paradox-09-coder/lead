@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import { connectDB } from "@/lib/mongodb";
 import { WebForm } from "@/models/WebForm";
 import { Lead, type LeadUtm } from "@/models/Lead";
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ message: "Ma'lumot noto'g'ri" }, { status: 400 });
+    return localizedJson({ message: "Ma'lumot noto'g'ri" }, { status: 400 });
   }
 
   // Honeypot: real visitors never see or fill this field.
@@ -33,16 +34,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const phone = text(body.phone);
   const email = text(body.email);
   if (!name || !phone) {
-    return NextResponse.json({ message: "Ism va telefon raqam kiritilishi shart" }, { status: 400 });
+    return localizedJson({ message: "Ism va telefon raqam kiritilishi shart" }, { status: 400 });
   }
   if (phone.replace(/\D/g, "").length < 7) {
-    return NextResponse.json({ message: "Telefon raqam noto'g'ri" }, { status: 400 });
+    return localizedJson({ message: "Telefon raqam noto'g'ri" }, { status: 400 });
   }
 
   await connectDB();
   const form = await WebForm.findOne({ slug });
   if (!form) {
-    return NextResponse.json({ message: "Forma topilmadi" }, { status: 404 });
+    return localizedJson({ message: "Forma topilmadi" }, { status: 404 });
   }
 
   // UTM tags come from the link the visitor opened; the form's own settings

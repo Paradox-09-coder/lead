@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import { connectDB } from "@/lib/mongodb";
 import { Lead } from "@/models/Lead";
 import { getSessionUserId } from "@/lib/server-session";
@@ -11,23 +12,23 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
   const { id } = await params;
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   try {
     await connectDB();
     const lead = await Lead.findOne({ _id: id, user: userId });
     if (!lead) {
-      return NextResponse.json({ message: "Lid topilmadi" }, { status: 404 });
+      return localizedJson({ message: "Lid topilmadi" }, { status: 404 });
     }
 
     const updated = await retryLead(lead);
     if (updated.status === "failed") {
-      return NextResponse.json({ message: updated.errorMessage ?? "Yuborilmadi" }, { status: 502 });
+      return localizedJson({ message: updated.errorMessage ?? "Yuborilmadi" }, { status: 502 });
     }
     return NextResponse.json({ ok: true, status: updated.status });
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import crypto from "node:crypto";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
@@ -21,14 +22,14 @@ function hashCode(code: string): string {
 export async function POST() {
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   try {
     await connectDB();
     const user = await User.findById(userId);
     if (!user) {
-      return NextResponse.json({ message: "Foydalanuvchi topilmadi" }, { status: 404 });
+      return localizedJson({ message: "Foydalanuvchi topilmadi" }, { status: 404 });
     }
 
     const code = String(crypto.randomInt(100_000, 1_000_000));
@@ -46,6 +47,6 @@ export async function POST() {
     return NextResponse.json({ ok: true, email: user.email });
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }

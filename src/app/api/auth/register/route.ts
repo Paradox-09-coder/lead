@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { createSessionToken, SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/session";
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
     };
 
     if (!fullName || !email || !password) {
-      return NextResponse.json({ message: "fullName, email va password to'ldirilishi shart" }, { status: 400 });
+      return localizedJson({ message: "fullName, email va password to'ldirilishi shart" }, { status: 400 });
     }
 
     await connectDB();
@@ -45,6 +46,6 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }

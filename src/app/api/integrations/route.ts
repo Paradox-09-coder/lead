@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import { connectDB } from "@/lib/mongodb";
 import { Connection } from "@/models/Connection";
 import { Integration, type IntegrationDocument } from "@/models/Integration";
@@ -24,7 +25,7 @@ function toPublicIntegration(integration: IntegrationDocument, connectionLabels:
 export async function GET() {
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   await connectDB();
@@ -40,7 +41,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   try {
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
       };
 
     if (!name || !facebookConnectionId || !formId || !formName || !targetConnectionId) {
-      return NextResponse.json({ message: "Barcha maydonlar to'ldirilishi shart" }, { status: 400 });
+      return localizedJson({ message: "Barcha maydonlar to'ldirilishi shart" }, { status: 400 });
     }
 
     await connectDB();
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
       platform: "facebook",
     });
     if (!facebookConnection) {
-      return NextResponse.json({ message: "Facebook ulanishi topilmadi" }, { status: 404 });
+      return localizedJson({ message: "Facebook ulanishi topilmadi" }, { status: 404 });
     }
 
     const targetConnection = await Connection.findOne({
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
       platform: { $in: ["bitrix24", "amocrm"] },
     });
     if (!targetConnection) {
-      return NextResponse.json({ message: "CRM ulanishi topilmadi" }, { status: 404 });
+      return localizedJson({ message: "CRM ulanishi topilmadi" }, { status: 404 });
     }
 
     const integration = await Integration.create({
@@ -98,6 +99,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(toPublicIntegration(integration, connectionLabels), { status: 201 });
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }

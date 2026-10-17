@@ -6,10 +6,12 @@ import { NewIntegrationModal } from "@/components/modals/NewIntegrationModal";
 import { EditIntegrationModal } from "@/components/modals/EditIntegrationModal";
 import { useMockData } from "@/components/dashboard/MockDataContext";
 import type { Integration } from "@/lib/integrations-client";
+import { useT } from "@/i18n/client";
 
 const ICON_BUTTON = "p-1.5 rounded-md text-muted hover:bg-surface-hover transition-colors";
 
 export default function IntegrationsPage() {
+  const { t } = useT();
   const { integrations, addIntegration, editIntegration, removeIntegration, connections } = useMockData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Integration | null>(null);
@@ -20,12 +22,12 @@ export default function IntegrationsPage() {
     try {
       await action();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Xatolik yuz berdi");
+      setError(err instanceof Error ? err.message : t("integrationsPage.error"));
     }
   }
 
   function handleDelete(integration: Integration) {
-    if (!window.confirm(`"${integration.name}" integratsiyasini o'chirasizmi? Bu forma lidlari CRM'ga yuborilmay qoladi.`)) {
+    if (!window.confirm(t("integrationsPage.deleteConfirm", { name: integration.name }))) {
       return;
     }
     void run(() => removeIntegration(integration._id));
@@ -41,17 +43,15 @@ export default function IntegrationsPage() {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Integratsiyalar</h1>
-          <p className="mt-1 text-sm text-muted">
-            Lead yig&apos;ish va CPA platformalarga yuborish uchun integratsiyalarni boshqaring
-          </p>
+          <h1 className="text-2xl font-semibold">{t("integrationsPage.title")}</h1>
+          <p className="mt-1 text-sm text-muted">{t("integrationsPage.subtitle")}</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
           className="flex items-center gap-2 rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors"
         >
           <Plus className="size-4" />
-          Yangi integratsiya
+          {t("integrationsPage.newIntegration")}
         </button>
       </div>
 
@@ -62,16 +62,14 @@ export default function IntegrationsPage() {
           <div className="size-12 rounded-full bg-primary/15 flex items-center justify-center">
             <FolderOpen className="size-5 text-primary" />
           </div>
-          <p className="mt-4 font-medium">Hali integratsiya qo&apos;shilmagan</p>
-          <p className="mt-1 text-sm text-muted max-w-sm">
-            Facebook, Webhook orqali lead yig&apos;ing va CPA platformalarga avtomatik yuborishni boshlang
-          </p>
+          <p className="mt-4 font-medium">{t("integrationsPage.emptyTitle")}</p>
+          <p className="mt-1 text-sm text-muted max-w-sm">{t("integrationsPage.emptySub")}</p>
           <button
             onClick={() => setIsModalOpen(true)}
             className="mt-5 flex items-center gap-2 rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors"
           >
             <Plus className="size-4" />
-            Birinchi integratsiyani qo&apos;shish
+            {t("integrationsPage.addFirst")}
           </button>
         </div>
       ) : (
@@ -88,33 +86,33 @@ export default function IntegrationsPage() {
                         : "bg-surface-hover text-muted"
                     }`}
                   >
-                    {integration.status === "active" ? "Faol" : (
+                    {integration.status === "active" ? t("integrationsPage.active") : (
                       <span className="flex items-center gap-1">
-                        <Pause className="size-3" /> To&apos;xtatilgan
+                        <Pause className="size-3" /> {t("integrationsPage.paused")}
                       </span>
                     )}
                   </span>
                   <button
                     onClick={() => handleToggle(integration)}
                     className={ICON_BUTTON}
-                    aria-label={integration.status === "active" ? "To'xtatish" : "Yoqish"}
-                    title={integration.status === "active" ? "To'xtatish" : "Yoqish"}
+                    aria-label={integration.status === "active" ? t("integrationsPage.pause") : t("integrationsPage.resume")}
+                    title={integration.status === "active" ? t("integrationsPage.pause") : t("integrationsPage.resume")}
                   >
                     {integration.status === "active" ? <Pause className="size-4" /> : <Play className="size-4" />}
                   </button>
                   <button
                     onClick={() => setEditing(integration)}
                     className={ICON_BUTTON}
-                    aria-label="Tahrirlash"
-                    title="Tahrirlash"
+                    aria-label={t("integrationsPage.edit")}
+                    title={t("integrationsPage.edit")}
                   >
                     <Pencil className="size-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(integration)}
                     className={`${ICON_BUTTON} hover:text-danger`}
-                    aria-label="O'chirish"
-                    title="O'chirish"
+                    aria-label={t("integrationsPage.delete")}
+                    title={t("integrationsPage.delete")}
                   >
                     <Trash2 className="size-4" />
                   </button>

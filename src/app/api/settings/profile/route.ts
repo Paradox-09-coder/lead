@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import { cookies } from "next/headers";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
@@ -11,20 +12,20 @@ export const runtime = "nodejs";
 export async function PATCH(request: NextRequest) {
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   try {
     const { fullName } = (await request.json()) as { fullName?: string };
     const trimmed = fullName?.trim();
     if (!trimmed) {
-      return NextResponse.json({ message: "Ismni kiriting" }, { status: 400 });
+      return localizedJson({ message: "Ismni kiriting" }, { status: 400 });
     }
 
     await connectDB();
     const user = await User.findByIdAndUpdate(userId, { fullName: trimmed }, { new: true });
     if (!user) {
-      return NextResponse.json({ message: "Foydalanuvchi topilmadi" }, { status: 404 });
+      return localizedJson({ message: "Foydalanuvchi topilmadi" }, { status: 404 });
     }
 
     // Session token holds the display name — refresh it so the topbar updates
@@ -40,6 +41,6 @@ export async function PATCH(request: NextRequest) {
     return response;
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }

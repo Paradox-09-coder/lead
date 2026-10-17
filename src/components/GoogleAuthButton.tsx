@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useT } from "@/i18n/client";
+import { translateMessage } from "@/i18n/messages";
 
 // Starts the Google OAuth flow (a full-page navigation, not fetch). When the
 // callback fails it sends the user back here with ?error=..., shown below.
 export function GoogleAuthButton({ label }: { label: string }) {
+  const { locale } = useT();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,7 +38,7 @@ export function GoogleAuthButton({ label }: { label: string }) {
         </svg>
         {label}
       </a>
-      {error && <p className="mt-2 text-xs text-danger text-center">{error}</p>}
+      {error && <p className="mt-2 text-xs text-danger text-center">{translateMessage(error, locale)}</p>}
     </div>
   );
 }

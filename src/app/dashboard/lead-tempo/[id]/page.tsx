@@ -7,6 +7,7 @@ import { getT } from "@/i18n/server";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RetryButton } from "@/components/RetryButton";
 import { leadSourceKey } from "@/lib/public-lead";
+import { translateMessage } from "@/i18n/messages";
 
 export default async function LeadDetailPage({
   params,
@@ -69,7 +70,7 @@ export default async function LeadDetailPage({
       {lead.errorMessage && (
         <div className="mt-6 rounded-md border border-danger/30 bg-danger/10 p-4">
           <p className="text-sm font-medium text-danger">{t("leadTempo.errorTitle")}</p>
-          <p className="mt-1 text-sm text-danger/90 font-mono whitespace-pre-wrap">{lead.errorMessage}</p>
+          <p className="mt-1 text-sm text-danger/90 font-mono whitespace-pre-wrap">{translateMessage(lead.errorMessage, locale)}</p>
         </div>
       )}
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { createSessionToken, SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/session";
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
     const { email, password } = (await request.json()) as { email?: string; password?: string };
 
     if (!email || !password) {
-      return NextResponse.json({ message: "email va password to'ldirilishi shart" }, { status: 400 });
+      return localizedJson({ message: "email va password to'ldirilishi shart" }, { status: 400 });
     }
 
     await connectDB();
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     const isMatch = user ? await user.comparePassword(password) : false;
 
     if (!user || !isMatch) {
-      return NextResponse.json({ message: "Email yoki parol noto'g'ri" }, { status: 401 });
+      return localizedJson({ message: "Email yoki parol noto'g'ri" }, { status: 401 });
     }
 
     const sessionToken = await createSessionToken({
@@ -41,6 +42,6 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }

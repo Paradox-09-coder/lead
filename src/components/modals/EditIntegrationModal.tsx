@@ -6,6 +6,7 @@ import { Modal } from "@/components/modals/Modal";
 import { CONNECT_PLATFORMS } from "@/lib/mock-data";
 import { fetchCrmStages, type Connection, type CrmStage } from "@/lib/connections-client";
 import type { Integration, UpdateIntegrationInput } from "@/lib/integrations-client";
+import { useT } from "@/i18n/client";
 
 const INPUT_CLASS =
   "mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50";
@@ -25,6 +26,7 @@ export function EditIntegrationModal({
   onClose: () => void;
   onSave: (input: UpdateIntegrationInput) => Promise<void>;
 }) {
+  const { t } = useT();
   const crmConnections = connections.filter((c) => c.platform === "bitrix24" || c.platform === "amocrm");
 
   const [name, setName] = useState(integration.name);
@@ -47,9 +49,9 @@ export function EditIntegrationModal({
     setStagesError(null);
     fetchCrmStages(target)
       .then(setStages)
-      .catch((err) => setStagesError(err instanceof Error ? err.message : "Bosqichlar olinmadi"))
+      .catch((err) => setStagesError(err instanceof Error ? err.message : t("integrationsPage.stagesError")))
       .finally(() => setIsLoadingStages(false));
-  }, [target]);
+  }, [target, t]);
 
   function handleTargetChange(id: string) {
     setTarget(id);
@@ -60,7 +62,7 @@ export function EditIntegrationModal({
 
   async function handleSave() {
     if (!name.trim() || !target) {
-      setError("Nom va CRM tanlanishi shart");
+      setError(t("integrationsPage.needNameCrm"));
       return;
     }
     setIsSaving(true);
@@ -69,35 +71,33 @@ export function EditIntegrationModal({
       await onSave({ name, targetConnectionId: target, stageId: stageId || null, duplicateCheck });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Saqlanmadi");
+      setError(err instanceof Error ? err.message : t("integrationsPage.saveError"));
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <Modal title="Integratsiyani tahrirlash" onClose={onClose}>
+    <Modal title={t("integrationsPage.editTitle")} onClose={onClose}>
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium">Nomi</label>
+          <label className="block text-sm font-medium">{t("integrationsPage.nameLabel")}</label>
           <input value={name} onChange={(event) => setName(event.target.value)} maxLength={120} className={INPUT_CLASS} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Manba</label>
+          <label className="block text-sm font-medium">{t("integrationsPage.stepSource")}</label>
           <p className="mt-1.5 text-sm text-muted">{integration.source}</p>
-          <p className="mt-1 text-xs text-muted">
-            Facebook sahifa va formani o&apos;zgartirib bo&apos;lmaydi — buning uchun yangi integratsiya yarating.
-          </p>
+          <p className="mt-1 text-xs text-muted">{t("integrationsPage.sourceFixed")}</p>
         </div>
 
         <div>
           <label className="block text-sm font-medium">
-            Lead qayerga yuborilsin? <span className="text-danger">*</span>
+            {t("integrationsPage.targetLabel")} <span className="text-danger">*</span>
           </label>
           <select value={target} onChange={(event) => handleTargetChange(event.target.value)} className={INPUT_CLASS}>
             <option value="" className="bg-surface">
-              CRM tanlang
+              {t("integrationsPage.targetPlaceholder")}
             </option>
             {crmConnections.map((c) => (
               <option key={c._id} value={c._id} className="bg-surface">
@@ -108,7 +108,7 @@ export function EditIntegrationModal({
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Boshlang&apos;ich bosqich (status)</label>
+          <label className="block text-sm font-medium">{t("integrationsPage.stageLabel")}</label>
           <select
             value={stageId}
             onChange={(event) => setStageId(event.target.value)}
@@ -116,7 +116,11 @@ export function EditIntegrationModal({
             className={INPUT_CLASS}
           >
             <option value="" className="bg-surface">
-              {!target ? "Avval CRM tanlang" : isLoadingStages ? "Yuklanmoqda..." : "Standart bosqich"}
+              {!target
+                ? t("integrationsPage.stageNeedTarget")
+                : isLoadingStages
+                  ? t("common.loading")
+                  : t("integrationsPage.stageDefault")}
             </option>
             {stages.map((s) => (
               <option key={s.id} value={s.id} className="bg-surface">
@@ -127,14 +131,14 @@ export function EditIntegrationModal({
           {isLoadingStages && (
             <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
               <RefreshCw className="size-3 animate-spin" />
-              CRM&apos;dan bosqichlar olinmoqda...
+              {t("integrationsPage.stagesLoading")}
             </p>
           )}
           {stagesError && <p className="mt-1.5 text-xs text-danger">{stagesError}</p>}
         </div>
 
         <label className="flex items-center justify-between rounded-md border border-border px-4 py-3">
-          <span className="text-sm">Duplicate tekshiruv</span>
+          <span className="text-sm">{t("integrationsPage.duplicateCheck")}</span>
           <button
             type="button"
             onClick={() => setDuplicateCheck((value) => !value)}
@@ -158,7 +162,7 @@ export function EditIntegrationModal({
             disabled={isSaving}
             className="rounded-md bg-primary hover:bg-primary-hover disabled:opacity-50 text-white px-5 py-2 text-sm font-medium transition-colors"
           >
-            {isSaving ? "Saqlanmoqda..." : "Saqlash"}
+            {isSaving ? t("integrationsPage.saving") : t("integrationsPage.save")}
           </button>
         </div>
       </div>

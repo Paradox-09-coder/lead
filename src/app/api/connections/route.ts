@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import { connectDB } from "@/lib/mongodb";
 import { Connection, type ConnectionDocument } from "@/models/Connection";
 import { getSessionUserId } from "@/lib/server-session";
@@ -29,7 +30,7 @@ function toPublicConnection(connection: ConnectionDocument) {
 export async function GET() {
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   await connectDB();
@@ -40,7 +41,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   try {
@@ -56,14 +57,14 @@ export async function POST(request: NextRequest) {
       };
 
     if (!platform || !PLATFORM_NAMES[platform]) {
-      return NextResponse.json({ message: "Platforma noto'g'ri tanlangan" }, { status: 400 });
+      return localizedJson({ message: "Platforma noto'g'ri tanlangan" }, { status: 400 });
     }
 
     await connectDB();
 
     if (platform === "bitrix24") {
       if (!webhookUrl) {
-        return NextResponse.json({ message: "Webhook URL kiritilishi shart" }, { status: 400 });
+        return localizedJson({ message: "Webhook URL kiritilishi shart" }, { status: 400 });
       }
 
       let profile: { NAME?: string; LAST_NAME?: string } | undefined;
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     if (platform === "amocrm") {
       if (!accountUrl || !jwtToken) {
-        return NextResponse.json({ message: "Account URL va token kiritilishi shart" }, { status: 400 });
+        return localizedJson({ message: "Account URL va token kiritilishi shart" }, { status: 400 });
       }
 
       try {
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
 
     if (platform === "facebook") {
       if (!pageId || !pageAccessToken) {
-        return NextResponse.json({ message: "Facebook sahifa ma'lumotlari to'liq emas" }, { status: 400 });
+        return localizedJson({ message: "Facebook sahifa ma'lumotlari to'liq emas" }, { status: 400 });
       }
 
       const connection = await Connection.findOneAndUpdate(
@@ -119,6 +120,6 @@ export async function POST(request: NextRequest) {
     );
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { localizedJson } from "@/i18n/api";
 import { connectDB } from "@/lib/mongodb";
 import { WebForm } from "@/models/WebForm";
 import { getSessionUserId } from "@/lib/server-session";
@@ -10,18 +11,18 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { id } = await params;
   const userId = await getSessionUserId();
   if (!userId) {
-    return NextResponse.json({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
+    return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
   }
 
   try {
     await connectDB();
     const deleted = await WebForm.findOneAndDelete({ _id: id, user: userId });
     if (!deleted) {
-      return NextResponse.json({ message: "Forma topilmadi" }, { status: 404 });
+      return localizedJson({ message: "Forma topilmadi" }, { status: 404 });
     }
     return NextResponse.json({ ok: true });
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
-    return NextResponse.json({ message }, { status });
+    return localizedJson({ message }, { status });
   }
 }

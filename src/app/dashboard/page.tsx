@@ -50,7 +50,7 @@ export default async function DashboardHomePage() {
 
         <div className="rounded-xl border border-border bg-surface p-6">
           <p className="text-sm text-muted">{t("dashboardHome.planLabel")}</p>
-          <p className="mt-1 font-semibold">{plan?.name ?? t("dashboardHome.planFree")}</p>
+          <p className="mt-1 font-semibold">{plan ? t(`pricing.tier.${plan.id}Name`) : t("dashboardHome.planFree")}</p>
           <p className="mt-1 text-xs text-muted">
             {quota ? t("dashboardHome.planQuota", { quota: quota.toLocaleString("en-US") }) : "—"}
           </p>
