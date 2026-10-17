@@ -6,8 +6,10 @@ import {
   fetchIntegrations,
   createIntegration,
   deleteIntegration,
+  updateIntegration,
   type Integration,
   type CreateIntegrationInput,
+  type UpdateIntegrationInput,
 } from "@/lib/integrations-client";
 
 interface MockDataContextValue {
@@ -19,6 +21,7 @@ interface MockDataContextValue {
   isLoadingIntegrations: boolean;
   addIntegration: (input: CreateIntegrationInput) => Promise<void>;
   removeIntegration: (id: string) => Promise<void>;
+  editIntegration: (id: string, input: UpdateIntegrationInput) => Promise<void>;
 }
 
 const MockDataContext = createContext<MockDataContextValue | null>(null);
@@ -59,6 +62,12 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
     setIntegrations((prev) => prev.filter((integration) => integration._id !== id));
   }
 
+  // Re-fetches after a save so derived labels (CRM name) stay correct.
+  async function editIntegration(id: string, input: UpdateIntegrationInput) {
+    await updateIntegration(id, input);
+    setIntegrations(await fetchIntegrations());
+  }
+
   return (
     <MockDataContext.Provider
       value={{
@@ -70,6 +79,7 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
         isLoadingIntegrations,
         addIntegration,
         removeIntegration,
+        editIntegration,
       }}
     >
       {children}

@@ -13,6 +13,9 @@ function toPublicIntegration(integration: IntegrationDocument, connectionLabels:
     name: integration.name,
     source: `Facebook — ${connectionLabels.get(integration.facebookConnection.toString()) ?? "?"} / ${integration.formName}`,
     target: connectionLabels.get(integration.targetConnection.toString()) ?? "?",
+    targetConnectionId: integration.targetConnection.toString(),
+    stageId: integration.stageId ?? null,
+    duplicateCheck: integration.duplicateCheck,
     status: integration.status,
     createdAt: integration.createdAt,
   };

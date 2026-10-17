@@ -3,8 +3,19 @@ export interface Integration {
   name: string;
   source: string;
   target: string;
+  targetConnectionId: string;
+  stageId: string | null;
+  duplicateCheck: boolean;
   status: "active" | "paused";
   createdAt: string;
+}
+
+export interface UpdateIntegrationInput {
+  name?: string;
+  status?: "active" | "paused";
+  targetConnectionId?: string;
+  stageId?: string | null;
+  duplicateCheck?: boolean;
 }
 
 export interface CreateIntegrationInput {
@@ -48,6 +59,17 @@ export async function createIntegration(input: CreateIntegrationInput): Promise<
     throw new Error(await parseErrorMessage(response, "Integratsiya saqlanmadi"));
   }
   return (await response.json()) as Integration;
+}
+
+export async function updateIntegration(id: string, input: UpdateIntegrationInput): Promise<void> {
+  const response = await fetch(`/api/integrations/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "Saqlanmadi"));
+  }
 }
 
 export async function deleteIntegration(id: string): Promise<void> {
