@@ -136,10 +136,11 @@ export const OVERVIEW_STATS: StatTile[] = [
 export interface ActivityItem {
   id: string;
   title: string;
+  subtitle?: string;
   time: string;
+  status?: string;
+  href?: string;
 }
-
-export const RECENT_ACTIVITY: ActivityItem[] = [];
 
 // Display texts are i18n keys (platforms.*), resolved with t() where shown.
 export const CONNECT_PLATFORMS = [

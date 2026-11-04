@@ -74,9 +74,14 @@ const COUNT_ACCUMULATORS = {
   duplicates: { $sum: { $cond: [{ $eq: ["$crmDuplicate", true] }, 1, 0] } },
 };
 
-function startOfTashkentDay(ms: number): number {
+export function startOfTashkentDay(ms: number): number {
   const shifted = ms + TZ_OFFSET_MS;
   return shifted - (shifted % DAY_MS) - TZ_OFFSET_MS;
+}
+
+export function startOfTashkentMonth(ms: number): number {
+  const shifted = new Date(ms + TZ_OFFSET_MS);
+  return Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), 1) - TZ_OFFSET_MS;
 }
 
 export function periodStart(period: ReportPeriod, now = Date.now()): Date | null {

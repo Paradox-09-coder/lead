@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
 import { Lead } from "@/models/Lead";
 import { PRICING_TIERS } from "@/lib/mock-data";
+import { startOfTashkentMonth } from "@/lib/reports";
 
 // Prices in so'm per month and lead quotas per tier id (the display texts live
 // in PRICING_TIERS). `null` quota = unlimited.
@@ -42,7 +43,6 @@ export async function getCurrentPlan(userId: string) {
 
 export async function getMonthlyLeadCount(userId: string): Promise<number> {
   await connectDB();
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthStart = new Date(startOfTashkentMonth(Date.now()));
   return Lead.countDocuments({ user: userId, createdAt: { $gte: monthStart } });
 }

@@ -103,7 +103,7 @@ function KeyRow({
   );
 }
 
-export function ApiKeysManager({ baseUrl }: { baseUrl: string }) {
+export function ApiKeysManager() {
   const { t, locale } = useT();
 
   const [keys, setKeys] = useState<ApiKeyItem[]>([]);
@@ -147,11 +147,6 @@ export function ApiKeysManager({ baseUrl }: { baseUrl: string }) {
     if (response.ok) setKeys((prev) => prev.filter((key) => key._id !== id));
     else setError(await readMessage(response, t("apiKeys.deleteError")));
   }
-
-  const curlExample = `curl -X POST ${baseUrl}/api/v1/leads \\
-  -H "Authorization: Bearer lsk_..." \\
-  -H "Content-Type: application/json" \\
-  -d '{"name": "Ali Valiyev", "phone": "+998901234567"}'`;
 
   return (
     <div className="mt-6 space-y-6">
@@ -218,32 +213,6 @@ export function ApiKeysManager({ baseUrl }: { baseUrl: string }) {
             </table>
           </div>
         )}
-      </div>
-
-      <div className="rounded-xl border border-border bg-surface p-5">
-        <p className="font-medium">{t("apiKeys.guideTitle")}</p>
-        <p className="mt-1 text-sm text-muted" dangerouslySetInnerHTML={{ __html: t("apiKeys.guideSub") }} />
-
-        <pre className="mt-3 rounded-md bg-background border border-border p-4 text-xs overflow-x-auto">
-          {curlExample}
-        </pre>
-
-        <ul className="mt-4 space-y-2 text-sm">
-          <li>
-            <code>POST /api/v1/leads</code> —{" "}
-            <span dangerouslySetInnerHTML={{ __html: t("apiKeys.docSendLead") }} />
-          </li>
-          <li>
-            <code>GET /api/v1/leads</code> — {t("apiKeys.docListLeads")}
-          </li>
-          <li>
-            <code>GET /api/v1/leads/:id</code> — {t("apiKeys.docOneLead")}
-          </li>
-          <li>
-            <code>GET /api/v1/connections</code> —{" "}
-            <span dangerouslySetInnerHTML={{ __html: t("apiKeys.docConnections") }} />
-          </li>
-        </ul>
       </div>
     </div>
   );
