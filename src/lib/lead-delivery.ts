@@ -55,11 +55,20 @@ function crmLeadMeta(lead: LeadDocument): CrmLeadMeta {
   if (lead.source === "api") {
     return { title: name ? `API lead — ${name}` : "API lead", sourceId: "OTHER" };
   }
-  return { title: name ? `Facebook lead — ${name}` : "Facebook lead", sourceId: "FACEBOOK" };
+  return {
+    title: name ? `Facebook lead — ${name}` : "Facebook lead",
+    sourceId: "FACEBOOK",
+    sourceDescription: lead.formName ? `LeadSync Facebook forma: ${lead.formName}` : undefined,
+  };
 }
 
 // Sends a stored lead to its CRM connection and records the outcome on the lead.
-export async function deliverLeadToCrm(lead: LeadDocument): Promise<LeadDocument> {
+// With `duplicateCheck`, a lead the CRM already has (same phone/email) is
+// linked to that card instead of creating a second one.
+export async function deliverLeadToCrm(
+  lead: LeadDocument,
+  options: { duplicateCheck?: boolean } = {},
+): Promise<LeadDocument> {
   if (!lead.targetConnection) {
     lead.status = "saved";
     await lead.save();
@@ -69,7 +78,9 @@ export async function deliverLeadToCrm(lead: LeadDocument): Promise<LeadDocument
   const connection = await Connection.findById(lead.targetConnection).select("+webhookUrl +jwtToken");
   try {
     if (!connection) throw new Error("CRM ulanishi topilmadi (o'chirilgan bo'lishi mumkin)");
-    lead.crmLeadId = await pushLeadToCrm(connection, lead.fields, lead.stageId, crmLeadMeta(lead));
+    const result = await pushLeadToCrm(connection, lead.fields, lead.stageId, crmLeadMeta(lead), options);
+    lead.crmLeadId = result.id;
+    lead.crmDuplicate = result.duplicate || undefined;
     lead.status = "success";
     lead.errorMessage = undefined;
   } catch (error) {
@@ -80,7 +91,7 @@ export async function deliverLeadToCrm(lead: LeadDocument): Promise<LeadDocument
   return lead;
 }
 
-async function fetchFacebookLead(leadgenId: string, pageAccessToken: string): Promise<FacebookFieldDatum[]> {
+export async function fetchFacebookLead(leadgenId: string, pageAccessToken: string): Promise<FacebookFieldDatum[]> {
   const url = new URL(`https://graph.facebook.com/${FACEBOOK_GRAPH_VERSION}/${leadgenId}`);
   url.searchParams.set("access_token", pageAccessToken);
   const response = await fetch(url);
@@ -115,7 +126,15 @@ export async function processFacebookLead(value: LeadgenChangeValue): Promise<vo
   if (existing && existing.status !== "failed") return;
 
   const integration = await findIntegration(value.page_id, value.form_id);
-  if (!integration) return;
+  if (!integration) {
+    console.warn(
+      "[facebook-webhook] no active integration for page/form",
+      value.page_id,
+      value.form_id,
+      value.leadgen_id,
+    );
+    return;
+  }
 
   const lead =
     existing ??
@@ -123,9 +142,6 @@ export async function processFacebookLead(value: LeadgenChangeValue): Promise<vo
       user: integration.user,
       source: "facebook",
       leadgenId: value.leadgen_id,
-      integration: integration._id,
-      targetConnection: integration.targetConnection,
-      stageId: integration.stageId,
       pageId: value.page_id,
       formId: value.form_id,
     });
@@ -133,6 +149,7 @@ export async function processFacebookLead(value: LeadgenChangeValue): Promise<vo
   lead.integration = integration._id;
   lead.targetConnection = integration.targetConnection;
   lead.stageId = integration.stageId;
+  lead.formName = integration.formName;
 
   try {
     const facebookConnection = await Connection.findById(integration.facebookConnection).select(
@@ -150,7 +167,15 @@ export async function processFacebookLead(value: LeadgenChangeValue): Promise<vo
     return;
   }
 
-  await deliverLeadToCrm(lead);
+  // Store before pushing: if a sync (or a redelivered webhook) already claimed
+  // this leadgenId, the unique index stops a second CRM push.
+  try {
+    await lead.save();
+  } catch (error) {
+    if ((error as { code?: number }).code === 11000) return;
+    throw error;
+  }
+  await deliverLeadToCrm(lead, { duplicateCheck: integration.duplicateCheck });
 }
 
 // Re-attempts delivery of a failed lead. A Facebook lead whose answers were
@@ -165,6 +190,7 @@ export async function retryLead(lead: LeadDocument): Promise<LeadDocument> {
       lead.integration = current._id;
       lead.targetConnection = current.targetConnection;
       lead.stageId = current.stageId;
+      lead.formName = current.formName;
     }
   }
   if (!hasFields && lead.source === "facebook" && lead.leadgenId && lead.integration) {

@@ -188,7 +188,7 @@ export const ru: Dict = {
 
   leadTempo: {
     title: "Темп лидов",
-    subtitle: "Лиды из Facebook и API, а также их доставка в CRM",
+    subtitle: "Лиды из форм Facebook, веб-форм и API, а также их доставка в CRM",
     filterAll: "Все",
     filterSuccess: "Успешно",
     filterFailed: "Ошибка",
@@ -222,6 +222,15 @@ export const ru: Dict = {
     retrySend: "Повторить",
     retrySending: "Отправка...",
     retryError: "Не отправлено",
+    syncHint: "Проверяем лиды в формах Facebook",
+    syncRunning: "Проверяем новые лиды в формах Facebook…",
+    syncDone: "Проверено форм Facebook: {forms}, добавлено новых лидов: {imported}",
+    syncNoForms: "Нет активных интеграций Facebook",
+    syncButton: "Обновить из Facebook",
+    syncButtonRunning: "Проверяем…",
+    syncError: "Не удалось синхронизировать с Facebook",
+    syncProblemsTitle: "Проблема с Facebook (из-за неё лиды могут не приходить автоматически):",
+    crmDuplicate: "Уже был в CRM",
   },
 
   status: {

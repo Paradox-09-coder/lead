@@ -27,10 +27,16 @@ export interface LeadDocument extends mongoose.Document {
   stageId?: string;
   pageId?: string;
   formId?: string;
+  // Facebook lead form name, copied from the integration so the list can say
+  // which form a lead came from.
+  formName?: string;
   fields: { name?: string; phone?: string; email?: string };
   rawFieldData?: unknown;
   status: LeadStatus;
   crmLeadId?: string;
+  // True when the CRM already had this lead (matched by phone/email), so
+  // crmLeadId points at the existing card instead of a new one.
+  crmDuplicate?: boolean;
   errorMessage?: string;
   retryCount: number;
   createdAt: Date;
@@ -57,6 +63,7 @@ const leadSchema = new Schema<LeadDocument>(
     stageId: { type: String },
     pageId: { type: String },
     formId: { type: String },
+    formName: { type: String },
     fields: {
       name: { type: String },
       phone: { type: String },
@@ -65,6 +72,7 @@ const leadSchema = new Schema<LeadDocument>(
     rawFieldData: { type: Schema.Types.Mixed },
     status: { type: String, enum: ["pending", "success", "failed", "saved"], default: "pending" },
     crmLeadId: { type: String },
+    crmDuplicate: { type: Boolean },
     errorMessage: { type: String },
     retryCount: { type: Number, default: 0 },
   },

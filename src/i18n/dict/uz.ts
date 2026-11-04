@@ -188,7 +188,7 @@ export const uz = {
 
   leadTempo: {
     title: "Lid tempi",
-    subtitle: "Facebook va API orqali kelgan lidlar hamda ularning CRM'ga yetib borishi",
+    subtitle: "Facebook formalari, veb-formalar va API orqali kelgan lidlar hamda ularning CRM'ga yetib borishi",
     filterAll: "Barchasi",
     filterSuccess: "Muvaffaqiyatli",
     filterFailed: "Xato",
@@ -222,6 +222,15 @@ export const uz = {
     retrySend: "Qayta urinish",
     retrySending: "Yuborilmoqda...",
     retryError: "Yuborilmadi",
+    syncHint: "Facebook formalaridagi lidlar tekshiriladi",
+    syncRunning: "Facebook formalaridan yangi lidlar tekshirilmoqda…",
+    syncDone: "{forms} ta Facebook forma tekshirildi, {imported} ta yangi lid qo'shildi",
+    syncNoForms: "Faol Facebook integratsiyasi yo'q",
+    syncButton: "Facebook'dan yangilash",
+    syncButtonRunning: "Tekshirilmoqda…",
+    syncError: "Facebook bilan sinxronlab bo'lmadi",
+    syncProblemsTitle: "Facebook bilan muammo (shu sababli lidlar avtomatik kelmasligi mumkin):",
+    crmDuplicate: "CRM'da allaqachon bor edi",
   },
 
   status: {

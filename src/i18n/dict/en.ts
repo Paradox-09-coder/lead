@@ -188,7 +188,7 @@ export const en: Dict = {
 
   leadTempo: {
     title: "Lead feed",
-    subtitle: "Leads received from Facebook and the API, and how they reached your CRM",
+    subtitle: "Leads from Facebook forms, web forms and the API, and how they reached your CRM",
     filterAll: "All",
     filterSuccess: "Delivered",
     filterFailed: "Failed",
@@ -222,6 +222,15 @@ export const en: Dict = {
     retrySend: "Retry",
     retrySending: "Sending...",
     retryError: "Not sent",
+    syncHint: "Checking your Facebook lead forms",
+    syncRunning: "Checking Facebook forms for new leads…",
+    syncDone: "Checked {forms} Facebook form(s), added {imported} new lead(s)",
+    syncNoForms: "No active Facebook integrations",
+    syncButton: "Refresh from Facebook",
+    syncButtonRunning: "Checking…",
+    syncError: "Could not sync with Facebook",
+    syncProblemsTitle: "Facebook problem (leads may not arrive automatically because of it):",
+    crmDuplicate: "Already in the CRM",
   },
 
   status: {

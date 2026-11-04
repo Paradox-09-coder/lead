@@ -6,6 +6,8 @@ import { getT } from "@/i18n/server";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RetryButton } from "@/components/RetryButton";
 import { leadSourceKey } from "@/lib/public-lead";
+import { FacebookSyncBar } from "@/components/FacebookSyncBar";
+import { Integration } from "@/models/Integration";
 
 const FILTER_VALUES: Array<LeadStatus | "all"> = ["all", "success", "failed", "pending", "saved"];
 
@@ -36,6 +38,25 @@ export default async function LeadTempoPage({
         .limit(100)
     : [];
 
+  // Facebook leads stored before formName existed: look the form up via the integration.
+  const missingFormIds = [
+    ...new Set(
+      leads.filter((l) => l.source === "facebook" && !l.formName && l.integration).map((l) => l.integration!.toString()),
+    ),
+  ];
+  const integrationFormNames = new Map(
+    missingFormIds.length > 0
+      ? (await Integration.find({ _id: { $in: missingFormIds } }).select("formName")).map((i) => [
+          i._id.toString(),
+          i.formName,
+        ])
+      : [],
+  );
+  const formLabel = (lead: (typeof leads)[number]) =>
+    lead.webFormName ??
+    lead.formName ??
+    (lead.integration ? integrationFormNames.get(lead.integration.toString()) : undefined);
+
   const localeTag = locale === "uz" ? "uz-UZ" : locale === "ru" ? "ru-RU" : "en-US";
 
   return (
@@ -44,6 +65,8 @@ export default async function LeadTempoPage({
         <h1 className="text-2xl font-semibold">{t("leadTempo.title")}</h1>
         <p className="mt-1 text-sm text-muted">{t("leadTempo.subtitle")}</p>
       </div>
+
+      <FacebookSyncBar />
 
       <div className="mt-4 flex flex-wrap gap-2">
         {FILTER_VALUES.map((value) => (
@@ -94,12 +117,15 @@ export default async function LeadTempoPage({
                     </td>
                     <td className="py-3 px-4">
                       {t(leadSourceKey(lead.source))}
-                      {lead.webFormName && <p className="text-xs text-muted">{lead.webFormName}</p>}
+                      {formLabel(lead) && <p className="text-xs text-muted">{formLabel(lead)}</p>}
                     </td>
                     <td className="py-3 px-4">
                       <StatusBadge status={lead.status} />
                     </td>
-                    <td className="py-3 px-4">{lead.crmLeadId ?? "—"}</td>
+                    <td className="py-3 px-4">
+                      {lead.crmLeadId ?? "—"}
+                      {lead.crmDuplicate && <p className="text-xs text-muted">{t("leadTempo.crmDuplicate")}</p>}
+                    </td>
                     <td className="py-3 px-4 text-right">
                       {lead.status === "failed" && <RetryButton leadId={id} />}
                     </td>
