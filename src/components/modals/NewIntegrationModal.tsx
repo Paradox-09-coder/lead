@@ -25,7 +25,6 @@ function platformName(platform: string): string {
 
 const STEP_KEYS = [
   "integrationsPage.stepSource",
-  "integrationsPage.stepSettings",
   "integrationsPage.stepTarget",
   "integrationsPage.stepFields",
 ];
@@ -135,10 +134,12 @@ export function NewIntegrationModal({
   }
 
   const canGoNext =
-    (step === 0 && source !== "" && (source !== "facebook" || (facebookConnectionId !== "" && formId !== ""))) ||
-    (step === 1 && formName !== "") ||
-    (step === 2 && target !== "") ||
-    step === 3;
+    (step === 0 &&
+      source !== "" &&
+      (source !== "facebook" || (facebookConnectionId !== "" && formId !== "")) &&
+      formName.trim() !== "") ||
+    (step === 1 && target !== "") ||
+    step === 2;
 
   async function handleSave() {
     if (source !== "facebook" || !selectedConnection || !formId) {
@@ -280,11 +281,7 @@ export function NewIntegrationModal({
               )}
             </>
           )}
-        </div>
-      )}
 
-      {step === 1 && (
-        <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium">
               {t("integrationsPage.formName")} <span className="text-danger">*</span>
@@ -299,7 +296,7 @@ export function NewIntegrationModal({
         </div>
       )}
 
-      {step === 2 && (
+      {step === 1 && (
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium">
@@ -388,7 +385,7 @@ export function NewIntegrationModal({
         </div>
       )}
 
-      {step === 3 && (
+      {step === 2 && (
         <div className="space-y-4">
           <p className="text-sm text-muted">{t("integrationsPage.fieldsHint")}</p>
 
