@@ -488,6 +488,8 @@ export const uz = {
     fieldsCrm: "Bitrix24 maydoni",
     fieldsToComment: "— Izohga yozish —",
     fieldsCustom: "maxsus",
+    fieldsSearch: "Maydonni qidiring...",
+    fieldsNoResults: "Hech narsa topilmadi",
   },
 
   connectModal: {

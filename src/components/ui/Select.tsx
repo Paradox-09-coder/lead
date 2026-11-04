@@ -41,7 +41,8 @@ const MENU_MAX_HEIGHT = 256;
 // A styled replacement for the native <select>: same `<option>` children API,
 // but `onChange` receives the value directly. The empty-value option is the
 // placeholder; it is only listed in the menu when `allowEmpty` is set (for
-// selects where "default / none" is a real choice).
+// selects where "default / none" is a real choice). With `searchable`, the
+// menu starts with a search box that filters options by label or value.
 export function Select({
   value,
   onChange,
@@ -49,6 +50,9 @@ export function Select({
   disabled = false,
   required = false,
   allowEmpty = false,
+  searchable = false,
+  searchPlaceholder = "",
+  noResultsLabel = "—",
   className = "",
 }: {
   value: string;
@@ -57,11 +61,16 @@ export function Select({
   disabled?: boolean;
   required?: boolean;
   allowEmpty?: boolean;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  noResultsLabel?: string;
   className?: string;
 }) {
   const listId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
   const [position, setPosition] = useState<{ left: number; width: number; top?: number; bottom?: number } | null>(
@@ -80,10 +89,17 @@ export function Select({
 
   const placeholder = options.find((option) => option.value === "")?.label ?? "";
   const selected = options.find((option) => option.value === value && option.value !== "");
-  const listed = useMemo(
+  const selectable = useMemo(
     () => options.filter((option) => allowEmpty || option.value !== ""),
     [options, allowEmpty],
   );
+  const listed = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return selectable;
+    return selectable.filter(
+      (option) => option.label.toLowerCase().includes(needle) || option.value.toLowerCase().includes(needle),
+    );
+  }, [selectable, query]);
 
   const updatePosition = useCallback(() => {
     const rect = buttonRef.current?.getBoundingClientRect();
@@ -100,7 +116,8 @@ export function Select({
   function open() {
     if (disabled) return;
     updatePosition();
-    const index = listed.findIndex((option) => option.value === value);
+    setQuery("");
+    const index = selectable.findIndex((option) => option.value === value);
     setHighlighted(index >= 0 ? index : 0);
     setIsOpen(true);
   }
@@ -138,6 +155,10 @@ export function Select({
     if (!isOpen) return;
     menuRef.current?.querySelector<HTMLElement>(`[data-index="${highlighted}"]`)?.scrollIntoView({ block: "nearest" });
   }, [isOpen, highlighted, position]);
+
+  useEffect(() => {
+    if (isOpen && searchable) searchRef.current?.focus();
+  }, [isOpen, searchable, position]);
 
   // A disabled select (e.g. "choose a CRM first") must not stay open.
   useEffect(() => {
@@ -188,6 +209,32 @@ export function Select({
     }
   }
 
+  function onSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        setHighlighted((index) => Math.min(index + 1, listed.length - 1));
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        setHighlighted((index) => Math.max(index - 1, 0));
+        break;
+      case "Enter":
+        event.preventDefault();
+        if (listed[highlighted]) choose(listed[highlighted]);
+        break;
+      case "Escape":
+        event.preventDefault();
+        event.stopPropagation();
+        close();
+        buttonRef.current?.focus();
+        break;
+      case "Tab":
+        close();
+        break;
+    }
+  }
+
   const menu =
     isOpen && position
       ? createPortal(
@@ -205,8 +252,24 @@ export function Select({
             }}
             className="z-[100] overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-2xl shadow-black/40"
           >
+            {searchable && (
+              <div className="sticky top-0 z-10 -mx-1 -mt-1 mb-1 bg-surface p-2 pb-1">
+                <input
+                  ref={searchRef}
+                  value={query}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setHighlighted(0);
+                  }}
+                  onKeyDown={onSearchKeyDown}
+                  placeholder={searchPlaceholder}
+                  aria-label={searchPlaceholder}
+                  className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none focus:border-primary"
+                />
+              </div>
+            )}
             {listed.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-muted">—</p>
+              <p className="px-3 py-2 text-sm text-muted">{noResultsLabel}</p>
             ) : (
               listed.map((option, index) => {
                 const isSelected = option.value === value;
@@ -219,6 +282,7 @@ export function Select({
                     aria-selected={isSelected}
                     onMouseEnter={() => setHighlighted(index)}
                     onMouseDown={(event) => event.preventDefault()}
+                    // eslint-disable-next-line react-hooks/refs -- only runs from the click handler, not during render
                     onClick={() => choose(option)}
                     className={`flex cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
                       index === highlighted ? "bg-surface-hover" : ""

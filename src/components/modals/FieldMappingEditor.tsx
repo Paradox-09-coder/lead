@@ -73,14 +73,14 @@ export function FieldMappingEditor({
         <div key={question.key} className="grid sm:grid-cols-2 gap-x-3 sm:items-center">
           <div className="min-w-0 pt-1.5 sm:pt-0">
             <p className="text-sm break-words">{question.label}</p>
-            {question.label !== question.key && (
-              <p className="text-xs text-muted font-mono break-all">{question.key}</p>
-            )}
           </div>
           <Select
             value={value[question.key] ?? ""}
             onChange={(next) => onChange({ ...value, [question.key]: next })}
             allowEmpty
+            searchable
+            searchPlaceholder={t("integrationsPage.fieldsSearch")}
+            noResultsLabel={t("integrationsPage.fieldsNoResults")}
           >
             <option value="">{t("integrationsPage.fieldsToComment")}</option>
             {crmFields.map((field) => (

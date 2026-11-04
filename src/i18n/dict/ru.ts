@@ -488,6 +488,8 @@ export const ru: Dict = {
     fieldsCrm: "Поле Bitrix24",
     fieldsToComment: "— В комментарий —",
     fieldsCustom: "пользовательское",
+    fieldsSearch: "Поиск поля...",
+    fieldsNoResults: "Ничего не найдено",
   },
 
   connectModal: {

@@ -488,6 +488,8 @@ export const en: Dict = {
     fieldsCrm: "Bitrix24 field",
     fieldsToComment: "— Write to comment —",
     fieldsCustom: "custom",
+    fieldsSearch: "Search fields...",
+    fieldsNoResults: "Nothing found",
   },
 
   connectModal: {
