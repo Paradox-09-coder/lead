@@ -186,6 +186,12 @@ export const ru: Dict = {
     statLeadsCount: "{count} лидов",
   },
 
+  updateBanner: {
+    title: "LeadSync стал лучше — свежая версия уже здесь!",
+    text: "Мы выкатили обновление. Обновите страницу, чтобы увидеть новинки и работать без сбоев.",
+    refresh: "Обновить",
+  },
+
   leadTempo: {
     title: "Темп лидов",
     subtitle: "Лиды из форм Facebook, веб-форм и API, а также их доставка в CRM",

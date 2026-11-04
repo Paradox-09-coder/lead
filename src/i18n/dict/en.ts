@@ -186,6 +186,12 @@ export const en: Dict = {
     statLeadsCount: "{count} leads",
   },
 
+  updateBanner: {
+    title: "Fresh build just landed — LeadSync got an upgrade!",
+    text: "We've shipped something new. Refresh the page to grab the latest version and keep everything running smoothly.",
+    refresh: "Refresh",
+  },
+
   leadTempo: {
     title: "Lead feed",
     subtitle: "Leads from Facebook forms, web forms and the API, and how they reached your CRM",

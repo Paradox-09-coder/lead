@@ -186,6 +186,12 @@ export const uz = {
     statLeadsCount: "{count} ta lid tushdi",
   },
 
+  updateBanner: {
+    title: "LeadSync yangilandi — yangi imkoniyatlar tayyor!",
+    text: "Biz sizga yangiroq versiyani tayyorladik. Sahifani yangilang va eng so'nggi o'zgarishlardan birinchilardan bo'lib foydalaning.",
+    refresh: "Yangilash",
+  },
+
   leadTempo: {
     title: "Lid tempi",
     subtitle: "Facebook formalari, veb-formalar va API orqali kelgan lidlar hamda ularning CRM'ga yetib borishi",
