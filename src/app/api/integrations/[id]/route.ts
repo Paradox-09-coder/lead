@@ -5,6 +5,7 @@ import { Connection } from "@/models/Connection";
 import { Integration } from "@/models/Integration";
 import { getSessionUserId } from "@/lib/server-session";
 import { toErrorResponseBody } from "@/lib/api-error";
+import { FieldMappingError, normalizeFieldMapping } from "@/lib/field-mapping";
 
 export const runtime = "nodejs";
 
@@ -24,6 +25,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       targetConnectionId?: string;
       stageId?: string | null;
       duplicateCheck?: boolean;
+      fieldMapping?: unknown;
     };
 
     await connectDB();
@@ -50,7 +52,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         platform: { $in: ["bitrix24", "amocrm"] },
       });
       if (!target) return localizedJson({ message: "CRM ulanishi topilmadi" }, { status: 404 });
+      // A mapping names fields of one specific CRM, so it cannot follow a change of CRM.
+      if (target._id.toString() !== integration.targetConnection.toString()) integration.fieldMapping = undefined;
       integration.targetConnection = target._id;
+    }
+    if (body.fieldMapping !== undefined) {
+      const target = await Connection.findOne({ _id: integration.targetConnection, user: userId }).select(
+        "+webhookUrl",
+      );
+      if (body.fieldMapping === null || !Array.isArray(body.fieldMapping) || target?.platform !== "bitrix24") {
+        integration.fieldMapping = undefined;
+      } else {
+        try {
+          integration.fieldMapping = await normalizeFieldMapping(target.webhookUrl!, body.fieldMapping);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Maydonlar tekshirilmadi";
+          return NextResponse.json({ message }, { status: error instanceof FieldMappingError ? 400 : 502 });
+        }
+      }
     }
     if (body.stageId !== undefined) integration.stageId = body.stageId || undefined;
     if (body.duplicateCheck !== undefined) integration.duplicateCheck = body.duplicateCheck;

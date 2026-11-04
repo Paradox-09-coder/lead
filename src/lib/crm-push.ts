@@ -1,5 +1,8 @@
 import type { ConnectionDocument } from "@/models/Connection";
 import type { LeadUtm } from "@/models/Lead";
+import type { FieldMappingEntry } from "@/models/Integration";
+import { bitrixMethodUrl } from "@/lib/bitrix-fields";
+import { buildMappedFields, type FacebookAnswer } from "@/lib/field-mapping";
 
 export interface LeadFields {
   name?: string;
@@ -14,6 +17,10 @@ export interface CrmLeadMeta {
   sourceId: string;
   sourceDescription?: string;
   utm?: LeadUtm;
+  // Facebook leads only: the integration's question -> CRM field mapping and
+  // the lead's raw answers. Without both, name/phone/email are sent as before.
+  fieldMapping?: FieldMappingEntry[];
+  answers?: FacebookAnswer[];
 }
 
 // Pushes a lead into Bitrix24 via crm.lead.add on the connection's inbound
@@ -24,25 +31,37 @@ async function pushToBitrix24(
   stageId: string | undefined,
   meta: CrmLeadMeta,
 ): Promise<string> {
-  const response = await fetch(bitrixMethodUrl(connection, "crm.lead.add"), {
+  const common = {
+    TITLE: meta.title,
+    SOURCE_ID: meta.sourceId,
+    SOURCE_DESCRIPTION: meta.sourceDescription,
+    STATUS_ID: stageId || undefined,
+    UTM_SOURCE: meta.utm?.source,
+    UTM_MEDIUM: meta.utm?.medium,
+    UTM_CAMPAIGN: meta.utm?.campaign,
+    UTM_CONTENT: meta.utm?.content,
+    UTM_TERM: meta.utm?.term,
+  };
+
+  let leadFields: Record<string, unknown>;
+  if (meta.fieldMapping && meta.answers && meta.answers.length > 0) {
+    // The integration says which question goes to which Bitrix24 field.
+    const mapped = buildMappedFields(meta.fieldMapping, meta.answers);
+    const comments = [mapped.fields.COMMENTS, ...mapped.comments].filter(Boolean).join("\n");
+    leadFields = { ...common, ...mapped.fields, COMMENTS: comments || undefined };
+  } else {
+    leadFields = {
+      ...common,
+      NAME: fields.name,
+      PHONE: fields.phone ? [{ VALUE: fields.phone, VALUE_TYPE: "WORK" }] : undefined,
+      EMAIL: fields.email ? [{ VALUE: fields.email, VALUE_TYPE: "WORK" }] : undefined,
+    };
+  }
+
+  const response = await fetch(bitrixMethodUrl(connection.webhookUrl!, "crm.lead.add"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      fields: {
-        TITLE: meta.title,
-        NAME: fields.name,
-        PHONE: fields.phone ? [{ VALUE: fields.phone, VALUE_TYPE: "WORK" }] : undefined,
-        EMAIL: fields.email ? [{ VALUE: fields.email, VALUE_TYPE: "WORK" }] : undefined,
-        SOURCE_ID: meta.sourceId,
-        SOURCE_DESCRIPTION: meta.sourceDescription,
-        STATUS_ID: stageId || undefined,
-        UTM_SOURCE: meta.utm?.source,
-        UTM_MEDIUM: meta.utm?.medium,
-        UTM_CAMPAIGN: meta.utm?.campaign,
-        UTM_CONTENT: meta.utm?.content,
-        UTM_TERM: meta.utm?.term,
-      },
-    }),
+    body: JSON.stringify({ fields: leadFields }),
   });
 
   const body = await response.json();
@@ -101,11 +120,6 @@ async function pushToAmoCrm(
   return String(body._embedded?.leads?.[0]?.id ?? "");
 }
 
-function bitrixMethodUrl(connection: ConnectionDocument, method: string): URL {
-  const base = connection.webhookUrl!.endsWith("/") ? connection.webhookUrl! : `${connection.webhookUrl}/`;
-  return new URL(method, base);
-}
-
 // Looks for an existing Bitrix24 lead with the same phone (or email).
 async function findBitrix24Duplicate(connection: ConnectionDocument, fields: LeadFields): Promise<string | null> {
   const checks: Array<["PHONE" | "EMAIL", string | undefined]> = [
@@ -114,7 +128,7 @@ async function findBitrix24Duplicate(connection: ConnectionDocument, fields: Lea
   ];
   for (const [type, value] of checks) {
     if (!value) continue;
-    const response = await fetch(bitrixMethodUrl(connection, "crm.duplicate.findbycomm"), {
+    const response = await fetch(bitrixMethodUrl(connection.webhookUrl!, "crm.duplicate.findbycomm"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ entity_type: "LEAD", type, values: [value] }),

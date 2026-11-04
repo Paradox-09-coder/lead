@@ -60,10 +60,17 @@ export async function deleteConnection(id: string): Promise<void> {
   }
 }
 
+export interface FacebookQuestion {
+  key: string; // the name the answer arrives under in a lead
+  label: string;
+  type: string; // FULL_NAME, PHONE, EMAIL, CUSTOM …
+}
+
 export interface FacebookLeadForm {
   id: string;
   name: string;
   status: string;
+  questions: FacebookQuestion[];
 }
 
 export async function fetchFacebookForms(connectionId: string): Promise<FacebookLeadForm[]> {
@@ -85,4 +92,22 @@ export async function fetchCrmStages(connectionId: string): Promise<CrmStage[]> 
     throw new Error(await parseErrorMessage(response, "Bosqichlar ro'yxati olinmadi"));
   }
   return (await response.json()) as CrmStage[];
+}
+
+// A CRM lead field a form answer can be written to (Bitrix24: standard and custom).
+export interface CrmField {
+  id: string;
+  label: string;
+  type: string;
+  required: boolean;
+  multiple: boolean;
+  custom: boolean;
+}
+
+export async function fetchCrmFields(connectionId: string): Promise<CrmField[]> {
+  const response = await fetch(`/api/connections/${connectionId}/fields`);
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "Maydonlar ro'yxati olinmadi"));
+  }
+  return (await response.json()) as CrmField[];
 }

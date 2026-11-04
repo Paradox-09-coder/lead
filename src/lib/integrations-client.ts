@@ -1,10 +1,20 @@
+// One Facebook form question and the CRM field its answer goes to ("" = into the comment).
+export interface FieldMappingInput {
+  questionKey: string;
+  questionLabel?: string | null;
+  crmField: string;
+}
+
 export interface Integration {
   _id: string;
   name: string;
   source: string;
   target: string;
   targetConnectionId: string;
+  facebookConnectionId: string;
+  formId: string;
   stageId: string | null;
+  fieldMapping: FieldMappingInput[];
   duplicateCheck: boolean;
   status: "active" | "paused";
   createdAt: string;
@@ -16,6 +26,7 @@ export interface UpdateIntegrationInput {
   targetConnectionId?: string;
   stageId?: string | null;
   duplicateCheck?: boolean;
+  fieldMapping?: FieldMappingInput[] | null;
 }
 
 export interface CreateIntegrationInput {
@@ -25,6 +36,7 @@ export interface CreateIntegrationInput {
   formName: string;
   targetConnectionId: string;
   stageId?: string;
+  fieldMapping?: FieldMappingInput[];
   duplicateCheck: boolean;
 }
 

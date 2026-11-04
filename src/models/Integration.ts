@@ -1,5 +1,18 @@
 import mongoose, { Schema } from "mongoose";
 
+// One Facebook form question and the CRM field its answer is written to.
+// An empty `crmField` means "no field": the answer goes into the lead's comment.
+export interface FieldMappingEntry {
+  questionKey: string;
+  questionLabel?: string;
+  crmField: string;
+  // Copied from the CRM when the integration is saved, so a lead can be built
+  // without another round trip to the CRM.
+  crmFieldType?: string;
+  crmFieldMultiple?: boolean;
+  crmItems?: { id: string; value: string }[];
+}
+
 export interface IntegrationDocument extends mongoose.Document {
   user: mongoose.Types.ObjectId;
   name: string;
@@ -9,10 +22,25 @@ export interface IntegrationDocument extends mongoose.Document {
   formName: string;
   targetConnection: mongoose.Types.ObjectId;
   stageId?: string;
+  // Absent on integrations created before field mapping existed: those send
+  // name / phone / email only.
+  fieldMapping?: FieldMappingEntry[];
   duplicateCheck: boolean;
   status: "active" | "paused";
   createdAt: Date;
 }
+
+const fieldMappingSchema = new Schema<FieldMappingEntry>(
+  {
+    questionKey: { type: String, required: true },
+    questionLabel: { type: String },
+    crmField: { type: String, default: "" },
+    crmFieldType: { type: String },
+    crmFieldMultiple: { type: Boolean },
+    crmItems: { type: [new Schema({ id: String, value: String }, { _id: false })], default: undefined },
+  },
+  { _id: false },
+);
 
 const integrationSchema = new Schema<IntegrationDocument>(
   {
@@ -54,6 +82,10 @@ const integrationSchema = new Schema<IntegrationDocument>(
     },
     stageId: {
       type: String,
+    },
+    fieldMapping: {
+      type: [fieldMappingSchema],
+      default: undefined,
     },
     duplicateCheck: {
       type: Boolean,

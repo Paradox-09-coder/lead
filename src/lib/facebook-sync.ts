@@ -122,7 +122,7 @@ async function importFormLeads(
     }
     // A missed webhook may still have reached the CRM some other way (e.g. the
     // CRM's own Facebook connector), so always match before creating.
-    await deliverLeadToCrm(lead, { duplicateCheck: true });
+    await deliverLeadToCrm(lead, { duplicateCheck: true, fieldMapping: integration.fieldMapping });
     imported++;
   }
   return imported;

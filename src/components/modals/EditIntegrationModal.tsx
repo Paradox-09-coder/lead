@@ -1,11 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { Modal } from "@/components/modals/Modal";
 import { Select } from "@/components/ui/Select";
+import { FieldMappingEditor, suggestMapping } from "@/components/modals/FieldMappingEditor";
 import { CONNECT_PLATFORMS } from "@/lib/mock-data";
-import { fetchCrmStages, type Connection, type CrmStage } from "@/lib/connections-client";
+import {
+  fetchCrmStages,
+  fetchCrmFields,
+  fetchFacebookForms,
+  type Connection,
+  type CrmStage,
+  type CrmField,
+  type FacebookQuestion,
+} from "@/lib/connections-client";
 import type { Integration, UpdateIntegrationInput } from "@/lib/integrations-client";
 import { useT } from "@/i18n/client";
 
@@ -40,6 +49,12 @@ export function EditIntegrationModal({
   const [stagesError, setStagesError] = useState<string | null>(null);
   const [stageId, setStageId] = useState(integration.stageId ?? "");
   const [duplicateCheck, setDuplicateCheck] = useState(integration.duplicateCheck);
+  const [formQuestions, setFormQuestions] = useState<FacebookQuestion[] | null>(null);
+  const [crmFields, setCrmFields] = useState<CrmField[]>([]);
+  const [isLoadingFields, setIsLoadingFields] = useState(false);
+  const [fieldsError, setFieldsError] = useState<string | null>(null);
+  // Choices made by hand in this dialog; the rest follows what is saved, then the suggestion.
+  const [mappingOverrides, setMappingOverrides] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,11 +69,54 @@ export function EditIntegrationModal({
       .finally(() => setIsLoadingStages(false));
   }, [target, t]);
 
+  const targetConnection = crmConnections.find((c) => c._id === target);
+  const isBitrixTarget = targetConnection?.platform === "bitrix24";
+
+  // The form's questions: from Facebook, or (if that fails) from the saved mapping.
+  useEffect(() => {
+    fetchFacebookForms(integration.facebookConnectionId)
+      .then((forms) => setFormQuestions(forms.find((f) => f.id === integration.formId)?.questions ?? []))
+      .catch(() => setFormQuestions([]));
+  }, [integration.facebookConnectionId, integration.formId]);
+
+  useEffect(() => {
+    if (!target || !isBitrixTarget) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- standard load-then-fetch pattern, not derived state
+    setIsLoadingFields(true);
+    setFieldsError(null);
+    fetchCrmFields(target)
+      .then(setCrmFields)
+      .catch((err) => setFieldsError(err instanceof Error ? err.message : t("integrationsPage.fieldsError")))
+      .finally(() => setIsLoadingFields(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-fetch when the selected target id changes
+  }, [target, isBitrixTarget]);
+
+  const questions = useMemo<FacebookQuestion[]>(() => {
+    if (formQuestions && formQuestions.length > 0) return formQuestions;
+    return integration.fieldMapping.map((e) => ({
+      key: e.questionKey,
+      label: e.questionLabel ?? e.questionKey,
+      type: "CUSTOM",
+    }));
+  }, [formQuestions, integration.fieldMapping]);
+
+  const mapping = useMemo(() => {
+    // A saved mapping names fields of the CRM it was saved for.
+    const saved =
+      target === integration.targetConnectionId
+        ? Object.fromEntries(integration.fieldMapping.map((e) => [e.questionKey, e.crmField]))
+        : {};
+    return { ...suggestMapping(questions, crmFields), ...saved, ...mappingOverrides };
+  }, [questions, crmFields, target, integration.targetConnectionId, integration.fieldMapping, mappingOverrides]);
+
   function handleTargetChange(id: string) {
     setTarget(id);
     setStages([]);
     setStageId("");
     setStagesError(null);
+    setCrmFields([]);
+    setFieldsError(null);
+    setMappingOverrides({});
   }
 
   async function handleSave() {
@@ -69,7 +127,22 @@ export function EditIntegrationModal({
     setIsSaving(true);
     setError(null);
     try {
-      await onSave({ name, targetConnectionId: target, stageId: stageId || null, duplicateCheck });
+      await onSave({
+        name,
+        targetConnectionId: target,
+        stageId: stageId || null,
+        duplicateCheck,
+        // Only sent when the CRM's fields loaded; a change of CRM clears the old mapping server-side.
+        ...(isBitrixTarget && crmFields.length > 0 && questions.length > 0
+          ? {
+              fieldMapping: questions.map((q) => ({
+                questionKey: q.key,
+                questionLabel: q.label,
+                crmField: mapping[q.key] ?? "",
+              })),
+            }
+          : {}),
+      });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("integrationsPage.saveError"));
@@ -79,7 +152,7 @@ export function EditIntegrationModal({
   }
 
   return (
-    <Modal title={t("integrationsPage.editTitle")} onClose={onClose}>
+    <Modal title={t("integrationsPage.editTitle")} onClose={onClose} widthClassName="max-w-xl">
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium">{t("integrationsPage.nameLabel")}</label>
@@ -137,6 +210,34 @@ export function EditIntegrationModal({
           )}
           {stagesError && <p className="mt-1.5 text-xs text-danger">{stagesError}</p>}
         </div>
+
+        {isBitrixTarget && (
+          <div>
+            <label className="block text-sm font-medium">{t("integrationsPage.fieldsTitle")}</label>
+            <p className="mt-1 mb-3 text-xs text-muted">{t("integrationsPage.fieldsHint")}</p>
+            {isLoadingFields && (
+              <p className="flex items-center gap-1.5 text-sm text-muted">
+                <RefreshCw className="size-3.5 animate-spin" />
+                {t("integrationsPage.fieldsLoading")}
+              </p>
+            )}
+            {fieldsError && <p className="text-sm text-danger">{fieldsError}</p>}
+            {!isLoadingFields && !fieldsError && questions.length === 0 && formQuestions !== null && (
+              <p className="text-sm text-muted">{t("integrationsPage.fieldsNoQuestions")}</p>
+            )}
+            {!isLoadingFields && !fieldsError && questions.length > 0 && (
+              <>
+                <FieldMappingEditor
+                  questions={questions}
+                  crmFields={crmFields}
+                  value={mapping}
+                  onChange={setMappingOverrides}
+                />
+                <p className="mt-3 text-xs text-muted">{t("integrationsPage.fieldsUnmappedNote")}</p>
+              </>
+            )}
+          </div>
+        )}
 
         <label className="flex items-center justify-between rounded-md border border-border px-4 py-3">
           <span className="text-sm">{t("integrationsPage.duplicateCheck")}</span>

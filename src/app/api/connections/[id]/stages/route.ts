@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb";
 import { Connection } from "@/models/Connection";
 import { getSessionUserId } from "@/lib/server-session";
 import { toErrorResponseBody } from "@/lib/api-error";
+import { fetchBitrixStagesFromFields } from "@/lib/bitrix-fields";
 
 export const runtime = "nodejs";
 
@@ -37,6 +38,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       const body = await response.json();
 
       if (!response.ok || body.error) {
+        // Some Bitrix24 plans refuse crm.status.list; the same stages are
+        // listed in crm.lead.fields, so try that before giving up.
+        try {
+          const fallback = await fetchBitrixStagesFromFields(connection.webhookUrl!);
+          if (fallback.length > 0) return NextResponse.json(fallback);
+        } catch {
+          // Fall through to the original error.
+        }
         return NextResponse.json(
           { message: body?.error_description ?? "Bosqichlar ro'yxati olinmadi" },
           { status: 502 },

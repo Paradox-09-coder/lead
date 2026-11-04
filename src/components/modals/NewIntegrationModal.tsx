@@ -1,17 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, RefreshCw } from "lucide-react";
 import { Modal } from "@/components/modals/Modal";
 import { Select } from "@/components/ui/Select";
+import { FieldMappingEditor, suggestMapping } from "@/components/modals/FieldMappingEditor";
 import { CONNECT_PLATFORMS } from "@/lib/mock-data";
 import {
   fetchFacebookForms,
   fetchCrmStages,
+  fetchCrmFields,
   type Connection,
   type FacebookLeadForm,
   type CrmStage,
+  type CrmField,
 } from "@/lib/connections-client";
 import type { CreateIntegrationInput } from "@/lib/integrations-client";
 import { useT } from "@/i18n/client";
@@ -20,7 +23,12 @@ function platformName(platform: string): string {
   return CONNECT_PLATFORMS.find((p) => p.id === platform)?.name ?? platform;
 }
 
-const STEP_KEYS = ["integrationsPage.stepSource", "integrationsPage.stepSettings", "integrationsPage.stepTarget"];
+const STEP_KEYS = [
+  "integrationsPage.stepSource",
+  "integrationsPage.stepSettings",
+  "integrationsPage.stepTarget",
+  "integrationsPage.stepFields",
+];
 
 export function NewIntegrationModal({
   connections,
@@ -34,19 +42,23 @@ export function NewIntegrationModal({
   const { t } = useT();
   const [step, setStep] = useState(0);
 
-  const [source, setSource] = useState<"facebook" | "webhook" | "">("");
+  const [source, setSource] = useState<"facebook" | "">("facebook");
   const [facebookConnectionId, setFacebookConnectionId] = useState("");
   const [forms, setForms] = useState<FacebookLeadForm[]>([]);
   const [isLoadingForms, setIsLoadingForms] = useState(false);
   const [formsError, setFormsError] = useState<string | null>(null);
   const [formId, setFormId] = useState("");
   const [formName, setFormName] = useState("");
-  const [telegramChatId, setTelegramChatId] = useState("");
   const [target, setTarget] = useState("");
   const [stages, setStages] = useState<CrmStage[]>([]);
   const [isLoadingStages, setIsLoadingStages] = useState(false);
   const [stagesError, setStagesError] = useState<string | null>(null);
   const [stageId, setStageId] = useState("");
+  const [crmFields, setCrmFields] = useState<CrmField[]>([]);
+  const [isLoadingFields, setIsLoadingFields] = useState(false);
+  const [fieldsError, setFieldsError] = useState<string | null>(null);
+  // Choices the user made by hand; everything else follows the automatic suggestion.
+  const [mappingOverrides, setMappingOverrides] = useState<Record<string, string>>({});
   const [duplicateCheck, setDuplicateCheck] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -55,6 +67,13 @@ export function NewIntegrationModal({
   const selectedConnection = facebookConnections.find((c) => c._id === facebookConnectionId);
   const crmConnections = connections.filter((c) => c.platform !== "facebook");
   const targetConnection = crmConnections.find((c) => c._id === target);
+  const isBitrixTarget = targetConnection?.platform === "bitrix24";
+
+  const questions = useMemo(() => forms.find((f) => f.id === formId)?.questions ?? [], [forms, formId]);
+  const mapping = useMemo(
+    () => ({ ...suggestMapping(questions, crmFields), ...mappingOverrides }),
+    [questions, crmFields, mappingOverrides],
+  );
 
   useEffect(() => {
     if (!facebookConnectionId) return;
@@ -87,17 +106,39 @@ export function NewIntegrationModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-fetch when the selected target id changes
   }, [target]);
 
+  // The CRM's fields (standard and custom) for the mapping step. Bitrix24 only.
+  useEffect(() => {
+    if (!target || !isBitrixTarget) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- standard load-then-fetch pattern, not derived state
+    setIsLoadingFields(true);
+    setFieldsError(null);
+    fetchCrmFields(target)
+      .then(setCrmFields)
+      .catch((err) => setFieldsError(err instanceof Error ? err.message : t("integrationsPage.fieldsError")))
+      .finally(() => setIsLoadingFields(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-fetch when the selected target id changes
+  }, [target, isBitrixTarget]);
+
   function handleTargetChange(id: string) {
     setTarget(id);
     setStages([]);
     setStageId("");
     setStagesError(null);
+    setCrmFields([]);
+    setFieldsError(null);
+    setMappingOverrides({});
+  }
+
+  function handleFormChange(id: string) {
+    setFormId(id);
+    setMappingOverrides({});
   }
 
   const canGoNext =
     (step === 0 && source !== "" && (source !== "facebook" || (facebookConnectionId !== "" && formId !== ""))) ||
-    (step === 1 && formName !== "" && telegramChatId !== "") ||
-    step === 2;
+    (step === 1 && formName !== "") ||
+    (step === 2 && target !== "") ||
+    step === 3;
 
   async function handleSave() {
     if (source !== "facebook" || !selectedConnection || !formId) {
@@ -120,6 +161,11 @@ export function NewIntegrationModal({
         formName: selectedForm?.name ?? formId,
         targetConnectionId: targetConnection._id,
         stageId: stageId || undefined,
+        // Only sent when the CRM's fields loaded; otherwise name/phone/email go as before.
+        fieldMapping:
+          isBitrixTarget && crmFields.length > 0 && questions.length > 0
+            ? questions.map((q) => ({ questionKey: q.key, questionLabel: q.label, crmField: mapping[q.key] ?? "" }))
+            : undefined,
         duplicateCheck,
       });
       onClose();
@@ -172,9 +218,6 @@ export function NewIntegrationModal({
               <option value="facebook" className="bg-surface">
                 {t("integrationsPage.sourceFacebook")}
               </option>
-              <option value="webhook" className="bg-surface">
-                {t("integrationsPage.sourceWebhook")}
-              </option>
             </Select>
           </div>
 
@@ -202,7 +245,7 @@ export function NewIntegrationModal({
                     <label className="block text-sm font-medium">{t("integrationsPage.form")}</label>
                     <Select
                       value={formId}
-                      onChange={(value) => setFormId(value)}
+                      onChange={(value) => handleFormChange(value)}
                       disabled={!facebookConnectionId || isLoadingForms}
                     >
                       <option value="" className="bg-surface">
@@ -252,24 +295,6 @@ export function NewIntegrationModal({
               placeholder={t("integrationsPage.formNamePlaceholder")}
               className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">
-              {t("integrationsPage.telegramChatId")} <span className="text-danger">*</span>
-            </label>
-            <input
-              value={telegramChatId}
-              onChange={(event) => setTelegramChatId(event.target.value)}
-              placeholder="1304074546"
-              className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm font-mono outline-none focus:border-primary"
-            />
-            <p className="mt-1.5 text-xs text-muted">{t("integrationsPage.telegramHint")}</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium">{t("integrationsPage.botLabel")}</label>
-            <Select value="default" onChange={() => {}}>
-              <option value="default" className="bg-surface">{t("integrationsPage.botDefault")}</option>
-            </Select>
           </div>
         </div>
       )}
@@ -360,6 +385,44 @@ export function NewIntegrationModal({
               />
             </button>
           </label>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted">{t("integrationsPage.fieldsHint")}</p>
+
+          {!isBitrixTarget && <p className="text-sm text-muted">{t("integrationsPage.fieldsOnlyBitrix")}</p>}
+
+          {isBitrixTarget && isLoadingFields && (
+            <p className="flex items-center gap-1.5 text-sm text-muted">
+              <RefreshCw className="size-3.5 animate-spin" />
+              {t("integrationsPage.fieldsLoading")}
+            </p>
+          )}
+
+          {isBitrixTarget && fieldsError && (
+            <div className="rounded-md border border-danger/30 bg-danger/10 p-3 text-sm">
+              <p className="text-danger">{fieldsError}</p>
+              <p className="mt-1 text-xs text-muted">{t("integrationsPage.fieldsFallback")}</p>
+            </div>
+          )}
+
+          {isBitrixTarget && !isLoadingFields && !fieldsError && questions.length === 0 && (
+            <p className="text-sm text-muted">{t("integrationsPage.fieldsNoQuestions")}</p>
+          )}
+
+          {isBitrixTarget && !isLoadingFields && !fieldsError && questions.length > 0 && (
+            <>
+              <FieldMappingEditor
+                questions={questions}
+                crmFields={crmFields}
+                value={mapping}
+                onChange={setMappingOverrides}
+              />
+              <p className="text-xs text-muted">{t("integrationsPage.fieldsUnmappedNote")}</p>
+            </>
+          )}
         </div>
       )}
 

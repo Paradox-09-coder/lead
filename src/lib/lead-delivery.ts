@@ -1,5 +1,5 @@
 import { Connection } from "@/models/Connection";
-import { Integration, type IntegrationDocument } from "@/models/Integration";
+import { Integration, type FieldMappingEntry, type IntegrationDocument } from "@/models/Integration";
 import { Lead, type LeadDocument } from "@/models/Lead";
 import { pushLeadToCrm, type CrmLeadMeta, type LeadFields } from "@/lib/crm-push";
 import { FACEBOOK_GRAPH_VERSION } from "@/lib/facebook-oauth";
@@ -35,7 +35,7 @@ export function extractFields(fieldData: FacebookFieldDatum[]): LeadFields {
 
 const UTM_KEYS = ["source", "medium", "campaign", "content", "term"] as const;
 
-function crmLeadMeta(lead: LeadDocument): CrmLeadMeta {
+function crmLeadMeta(lead: LeadDocument, fieldMapping?: FieldMappingEntry[]): CrmLeadMeta {
   const name = lead.fields?.name;
   if (lead.source === "form") {
     const formName = lead.webFormName ?? "Veb-forma";
@@ -59,6 +59,8 @@ function crmLeadMeta(lead: LeadDocument): CrmLeadMeta {
     title: name ? `Facebook lead — ${name}` : "Facebook lead",
     sourceId: "FACEBOOK",
     sourceDescription: lead.formName ? `LeadSync Facebook forma: ${lead.formName}` : undefined,
+    fieldMapping,
+    answers: Array.isArray(lead.rawFieldData) ? (lead.rawFieldData as FacebookFieldDatum[]) : undefined,
   };
 }
 
@@ -67,7 +69,7 @@ function crmLeadMeta(lead: LeadDocument): CrmLeadMeta {
 // linked to that card instead of creating a second one.
 export async function deliverLeadToCrm(
   lead: LeadDocument,
-  options: { duplicateCheck?: boolean } = {},
+  options: { duplicateCheck?: boolean; fieldMapping?: FieldMappingEntry[] } = {},
 ): Promise<LeadDocument> {
   if (!lead.targetConnection) {
     lead.status = "saved";
@@ -78,7 +80,7 @@ export async function deliverLeadToCrm(
   const connection = await Connection.findById(lead.targetConnection).select("+webhookUrl +jwtToken");
   try {
     if (!connection) throw new Error("CRM ulanishi topilmadi (o'chirilgan bo'lishi mumkin)");
-    const result = await pushLeadToCrm(connection, lead.fields, lead.stageId, crmLeadMeta(lead), options);
+    const result = await pushLeadToCrm(connection, lead.fields, lead.stageId, crmLeadMeta(lead, options.fieldMapping), options);
     lead.crmLeadId = result.id;
     lead.crmDuplicate = result.duplicate || undefined;
     lead.status = "success";
@@ -175,7 +177,10 @@ export async function processFacebookLead(value: LeadgenChangeValue): Promise<vo
     if ((error as { code?: number }).code === 11000) return;
     throw error;
   }
-  await deliverLeadToCrm(lead, { duplicateCheck: integration.duplicateCheck });
+  await deliverLeadToCrm(lead, {
+    duplicateCheck: integration.duplicateCheck,
+    fieldMapping: integration.fieldMapping,
+  });
 }
 
 // Re-attempts delivery of a failed lead. A Facebook lead whose answers were
@@ -184,6 +189,7 @@ export async function retryLead(lead: LeadDocument): Promise<LeadDocument> {
   lead.retryCount += 1;
 
   const hasFields = Boolean(lead.fields?.name || lead.fields?.phone || lead.fields?.email);
+  let fieldMapping: FieldMappingEntry[] | undefined;
   if (lead.source === "facebook" && lead.pageId && lead.formId) {
     const current = await findIntegration(lead.pageId, lead.formId);
     if (current) {
@@ -191,6 +197,7 @@ export async function retryLead(lead: LeadDocument): Promise<LeadDocument> {
       lead.targetConnection = current.targetConnection;
       lead.stageId = current.stageId;
       lead.formName = current.formName;
+      fieldMapping = current.fieldMapping;
     }
   }
   if (!hasFields && lead.source === "facebook" && lead.leadgenId && lead.integration) {
@@ -212,5 +219,5 @@ export async function retryLead(lead: LeadDocument): Promise<LeadDocument> {
     }
   }
 
-  return deliverLeadToCrm(lead);
+  return deliverLeadToCrm(lead, { fieldMapping });
 }

@@ -5,6 +5,7 @@ import { Connection } from "@/models/Connection";
 import { Integration, type IntegrationDocument } from "@/models/Integration";
 import { getSessionUserId } from "@/lib/server-session";
 import { toErrorResponseBody } from "@/lib/api-error";
+import { FieldMappingError, normalizeFieldMapping } from "@/lib/field-mapping";
 
 export const runtime = "nodejs";
 
@@ -15,7 +16,14 @@ function toPublicIntegration(integration: IntegrationDocument, connectionLabels:
     source: `Facebook — ${connectionLabels.get(integration.facebookConnection.toString()) ?? "?"} / ${integration.formName}`,
     target: connectionLabels.get(integration.targetConnection.toString()) ?? "?",
     targetConnectionId: integration.targetConnection.toString(),
+    facebookConnectionId: integration.facebookConnection.toString(),
+    formId: integration.formId,
     stageId: integration.stageId ?? null,
+    fieldMapping: (integration.fieldMapping ?? []).map((entry) => ({
+      questionKey: entry.questionKey,
+      questionLabel: entry.questionLabel ?? null,
+      crmField: entry.crmField,
+    })),
     duplicateCheck: integration.duplicateCheck,
     status: integration.status,
     createdAt: integration.createdAt,
@@ -45,7 +53,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { name, facebookConnectionId, formId, formName, targetConnectionId, stageId, duplicateCheck } =
+    const { name, facebookConnectionId, formId, formName, targetConnectionId, stageId, duplicateCheck, fieldMapping } =
       (await request.json()) as {
         name?: string;
         facebookConnectionId?: string;
@@ -54,6 +62,7 @@ export async function POST(request: NextRequest) {
         targetConnectionId?: string;
         stageId?: string;
         duplicateCheck?: boolean;
+        fieldMapping?: unknown;
       };
 
     if (!name || !facebookConnectionId || !formId || !formName || !targetConnectionId) {
@@ -75,9 +84,20 @@ export async function POST(request: NextRequest) {
       _id: targetConnectionId,
       user: userId,
       platform: { $in: ["bitrix24", "amocrm"] },
-    });
+    }).select("+webhookUrl");
     if (!targetConnection) {
       return localizedJson({ message: "CRM ulanishi topilmadi" }, { status: 404 });
+    }
+
+    // Which Facebook question goes to which Bitrix24 field (Bitrix24 only).
+    let normalizedMapping;
+    if (targetConnection.platform === "bitrix24" && Array.isArray(fieldMapping) && fieldMapping.length > 0) {
+      try {
+        normalizedMapping = await normalizeFieldMapping(targetConnection.webhookUrl!, fieldMapping);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Maydonlar tekshirilmadi";
+        return NextResponse.json({ message }, { status: error instanceof FieldMappingError ? 400 : 502 });
+      }
     }
 
     const integration = await Integration.create({
@@ -89,6 +109,7 @@ export async function POST(request: NextRequest) {
       formName,
       targetConnection: targetConnection._id,
       stageId,
+      fieldMapping: normalizedMapping,
       duplicateCheck: duplicateCheck ?? true,
     });
 
