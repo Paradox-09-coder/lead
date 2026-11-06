@@ -34,6 +34,12 @@ const MESSAGES: Record<string, { ru: string; en: string }> = {
   "Manba noto'g'ri": { ru: "Неверный источник", en: "Invalid source" },
   "Ma'lumot noto'g'ri": { ru: "Неверные данные", en: "Invalid data" },
   "Lid topilmadi": { ru: "Лид не найден", en: "Lead not found" },
+  "Maydon nomini kiriting": { ru: "Введите название поля", en: "Enter a field name" },
+  "Maydon turi noto'g'ri": { ru: "Неверный тип поля", en: "Invalid field type" },
+  "Ro'yxat uchun kamida bitta variant kiriting": {
+    ru: "Укажите хотя бы один вариант для списка",
+    en: "Enter at least one option for the list",
+  },
   "Kodni to'g'ri kiriting": { ru: "Введите код правильно", en: "Enter the code correctly" },
   "Kod topilmadi yoki muddati tugagan": { ru: "Код не найден или истёк", en: "Code not found or expired" },
   "Kod noto'g'ri": { ru: "Неверный код", en: "Incorrect code" },

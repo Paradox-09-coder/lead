@@ -102,6 +102,7 @@ export interface CrmField {
   required: boolean;
   multiple: boolean;
   custom: boolean;
+  items?: { id: string; value: string }[]; // list options
 }
 
 export async function fetchCrmFields(connectionId: string): Promise<CrmField[]> {
@@ -110,4 +111,26 @@ export async function fetchCrmFields(connectionId: string): Promise<CrmField[]> 
     throw new Error(await parseErrorMessage(response, "Maydonlar ro'yxati olinmadi"));
   }
   return (await response.json()) as CrmField[];
+}
+
+export type NewCrmFieldType = "string" | "integer" | "double" | "boolean" | "date" | "datetime" | "url" | "enumeration";
+
+export interface NewCrmFieldInput {
+  label: string;
+  type: NewCrmFieldType;
+  multiple: boolean;
+  options: string[];
+}
+
+// Creates a new custom lead field in the CRM and returns it.
+export async function createCrmField(connectionId: string, input: NewCrmFieldInput): Promise<CrmField> {
+  const response = await fetch(`/api/connections/${connectionId}/fields`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "Maydon yaratilmadi"));
+  }
+  return (await response.json()) as CrmField;
 }

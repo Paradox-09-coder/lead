@@ -11,6 +11,8 @@ import {
   fetchFacebookForms,
   fetchCrmStages,
   fetchCrmFields,
+  createCrmField,
+  type NewCrmFieldInput,
   type Connection,
   type FacebookLeadForm,
   type CrmStage,
@@ -117,6 +119,13 @@ export function NewIntegrationModal({
       .finally(() => setIsLoadingFields(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-fetch when the selected target id changes
   }, [target, isBitrixTarget]);
+
+  // Creates a new field in the CRM and adds it to the list the questions pick from.
+  async function handleCreateField(input: NewCrmFieldInput): Promise<CrmField> {
+    const field = await createCrmField(target, input);
+    setCrmFields((previous) => [...previous, field]);
+    return field;
+  }
 
   function handleTargetChange(id: string) {
     setTarget(id);
@@ -416,6 +425,7 @@ export function NewIntegrationModal({
                 crmFields={crmFields}
                 value={mapping}
                 onChange={setMappingOverrides}
+                onCreateField={handleCreateField}
               />
               <p className="text-xs text-muted">{t("integrationsPage.fieldsUnmappedNote")}</p>
             </>

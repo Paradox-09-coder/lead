@@ -9,6 +9,8 @@ import { CONNECT_PLATFORMS } from "@/lib/mock-data";
 import {
   fetchCrmStages,
   fetchCrmFields,
+  createCrmField,
+  type NewCrmFieldInput,
   fetchFacebookForms,
   type Connection,
   type CrmStage,
@@ -108,6 +110,13 @@ export function EditIntegrationModal({
         : {};
     return { ...suggestMapping(questions, crmFields), ...saved, ...mappingOverrides };
   }, [questions, crmFields, target, integration.targetConnectionId, integration.fieldMapping, mappingOverrides]);
+
+  // Creates a new field in the CRM and adds it to the list the questions pick from.
+  async function handleCreateField(input: NewCrmFieldInput): Promise<CrmField> {
+    const field = await createCrmField(target, input);
+    setCrmFields((previous) => [...previous, field]);
+    return field;
+  }
 
   function handleTargetChange(id: string) {
     setTarget(id);
@@ -232,6 +241,7 @@ export function EditIntegrationModal({
                   crmFields={crmFields}
                   value={mapping}
                   onChange={setMappingOverrides}
+                onCreateField={handleCreateField}
                 />
                 <p className="mt-3 text-xs text-muted">{t("integrationsPage.fieldsUnmappedNote")}</p>
               </>

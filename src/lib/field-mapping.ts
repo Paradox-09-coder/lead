@@ -123,7 +123,13 @@ export function buildMappedFields(mapping: FieldMappingEntry[], answers: Faceboo
       converted = typeof existing === "string" ? `${existing} ${value}` : value;
     }
 
-    fields[field] = entry.crmFieldMultiple && !Array.isArray(converted) ? [converted] : converted;
+    if (entry.crmFieldMultiple) {
+      // Several questions can feed one multiple-value field: keep every answer.
+      const previous = Array.isArray(fields[field]) ? (fields[field] as unknown[]) : [];
+      fields[field] = [...previous, ...(Array.isArray(converted) ? converted : [converted])];
+    } else {
+      fields[field] = converted;
+    }
   }
 
   for (const answer of answers) {
