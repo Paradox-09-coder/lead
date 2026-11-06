@@ -8,6 +8,7 @@ import {
   FileText,
   FileInput,
   TrendingUp,
+  Webhook,
   Link2,
   KeyRound,
   Settings,
@@ -36,6 +37,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/dashboard/forms", key: "sidebar.forms", icon: FileInput },
       { href: "/dashboard/reports", key: "sidebar.reports", icon: FileText },
       { href: "/dashboard/lead-tempo", key: "sidebar.leadTempo", icon: TrendingUp },
+      { href: "/dashboard/conversions", key: "sidebar.conversions", icon: Webhook },
       // "Moliya tahlili" (finance) sidebardan vaqtincha olib tashlangan —
       // sahifa saqlangan; keyinroq qayta ulash uchun yetarli.
       // "Obuna sotib olish" (orders) sidebardan vaqtincha olib tashlangan —

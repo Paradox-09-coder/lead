@@ -101,6 +101,19 @@ const MESSAGES: Record<string, { ru: string; en: string }> = {
     ru: "Этот аккаунт Telegram привязан к другой учётной записи",
     en: "This Telegram account is linked to another account",
   },
+  "Endpoint topilmadi": { ru: "Endpoint не найден", en: "Endpoint not found" },
+  "Pixel ID noto'g'ri (faqat raqamlar)": {
+    ru: "Неверный Pixel ID (только цифры)",
+    en: "Invalid Pixel ID (digits only)",
+  },
+  "Hodisa noto'g'ri": { ru: "Неверное событие", en: "Invalid event" },
+  "Valyuta noto'g'ri": { ru: "Неверная валюта", en: "Invalid currency" },
+  "Davlat kodi noto'g'ri": { ru: "Неверный код страны", en: "Invalid country code" },
+  "Test kodi noto'g'ri": { ru: "Неверный тестовый код", en: "Invalid test code" },
+  "Eng ko'pi bilan {n} ta endpoint yaratish mumkin": {
+    ru: "Можно создать не более {n} эндпоинтов",
+    en: "You can create at most {n} endpoints",
+  },
   // OAuth redirect errors (?error= / ?facebook_error=)
   "Xavfsizlik tekshiruvi muvaffaqiyatsiz": { ru: "Проверка безопасности не пройдена", en: "Security check failed" },
   "Xavfsizlik tekshiruvi muvaffaqiyatsiz, qayta urinib ko'ring": {
