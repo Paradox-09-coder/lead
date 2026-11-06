@@ -5,6 +5,12 @@ export interface FieldMappingInput {
   crmField: string;
 }
 
+// A CRM field that gets the same fixed value on every lead ("hidden field").
+export interface HiddenFieldInput {
+  crmField: string;
+  value: string;
+}
+
 export interface Integration {
   _id: string;
   name: string;
@@ -14,7 +20,10 @@ export interface Integration {
   facebookConnectionId: string;
   formId: string;
   stageId: string | null;
+  // Bitrix24 lead source (SOURCE_ID); null = the default, Facebook.
+  sourceId: string | null;
   fieldMapping: FieldMappingInput[];
+  hiddenFields: HiddenFieldInput[];
   duplicateCheck: boolean;
   status: "active" | "paused";
   createdAt: string;
@@ -25,8 +34,10 @@ export interface UpdateIntegrationInput {
   status?: "active" | "paused";
   targetConnectionId?: string;
   stageId?: string | null;
+  sourceId?: string | null;
   duplicateCheck?: boolean;
   fieldMapping?: FieldMappingInput[] | null;
+  hiddenFields?: HiddenFieldInput[] | null;
 }
 
 export interface CreateIntegrationInput {
@@ -36,7 +47,9 @@ export interface CreateIntegrationInput {
   formName: string;
   targetConnectionId: string;
   stageId?: string;
+  sourceId?: string;
   fieldMapping?: FieldMappingInput[];
+  hiddenFields?: HiddenFieldInput[];
   duplicateCheck: boolean;
 }
 

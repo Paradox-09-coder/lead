@@ -5,7 +5,12 @@ import { Connection } from "@/models/Connection";
 import { Integration, type IntegrationDocument } from "@/models/Integration";
 import { getSessionUserId } from "@/lib/server-session";
 import { toErrorResponseBody } from "@/lib/api-error";
-import { FieldMappingError, normalizeFieldMapping } from "@/lib/field-mapping";
+import {
+  FieldMappingError,
+  normalizeFieldMapping,
+  normalizeHiddenFields,
+  normalizeSourceId,
+} from "@/lib/field-mapping";
 
 export const runtime = "nodejs";
 
@@ -19,10 +24,15 @@ function toPublicIntegration(integration: IntegrationDocument, connectionLabels:
     facebookConnectionId: integration.facebookConnection.toString(),
     formId: integration.formId,
     stageId: integration.stageId ?? null,
+    sourceId: integration.sourceId ?? null,
     fieldMapping: (integration.fieldMapping ?? []).map((entry) => ({
       questionKey: entry.questionKey,
       questionLabel: entry.questionLabel ?? null,
       crmField: entry.crmField,
+    })),
+    hiddenFields: (integration.hiddenFields ?? []).map((entry) => ({
+      crmField: entry.crmField,
+      value: entry.value,
     })),
     duplicateCheck: integration.duplicateCheck,
     status: integration.status,
@@ -53,17 +63,29 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { name, facebookConnectionId, formId, formName, targetConnectionId, stageId, duplicateCheck, fieldMapping } =
-      (await request.json()) as {
-        name?: string;
-        facebookConnectionId?: string;
-        formId?: string;
-        formName?: string;
-        targetConnectionId?: string;
-        stageId?: string;
-        duplicateCheck?: boolean;
-        fieldMapping?: unknown;
-      };
+    const {
+      name,
+      facebookConnectionId,
+      formId,
+      formName,
+      targetConnectionId,
+      stageId,
+      sourceId,
+      duplicateCheck,
+      fieldMapping,
+      hiddenFields,
+    } = (await request.json()) as {
+      name?: string;
+      facebookConnectionId?: string;
+      formId?: string;
+      formName?: string;
+      targetConnectionId?: string;
+      stageId?: string;
+      sourceId?: string;
+      duplicateCheck?: boolean;
+      fieldMapping?: unknown;
+      hiddenFields?: unknown;
+    };
 
     if (!name || !facebookConnectionId || !formId || !formName || !targetConnectionId) {
       return localizedJson({ message: "Barcha maydonlar to'ldirilishi shart" }, { status: 400 });
@@ -89,11 +111,21 @@ export async function POST(request: NextRequest) {
       return localizedJson({ message: "CRM ulanishi topilmadi" }, { status: 404 });
     }
 
-    // Which Facebook question goes to which Bitrix24 field (Bitrix24 only).
+    // Which Facebook question goes to which Bitrix24 field, the lead source and
+    // the fixed-value hidden fields (Bitrix24 only).
     let normalizedMapping;
-    if (targetConnection.platform === "bitrix24" && Array.isArray(fieldMapping) && fieldMapping.length > 0) {
+    let normalizedSourceId;
+    let normalizedHiddenFields;
+    if (targetConnection.platform === "bitrix24") {
       try {
-        normalizedMapping = await normalizeFieldMapping(targetConnection.webhookUrl!, fieldMapping);
+        const webhookUrl = targetConnection.webhookUrl!;
+        if (Array.isArray(fieldMapping) && fieldMapping.length > 0) {
+          normalizedMapping = await normalizeFieldMapping(webhookUrl, fieldMapping);
+        }
+        normalizedSourceId = await normalizeSourceId(webhookUrl, sourceId);
+        if (Array.isArray(hiddenFields) && hiddenFields.length > 0) {
+          normalizedHiddenFields = await normalizeHiddenFields(webhookUrl, hiddenFields);
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Maydonlar tekshirilmadi";
         return NextResponse.json({ message }, { status: error instanceof FieldMappingError ? 400 : 502 });
@@ -109,7 +141,9 @@ export async function POST(request: NextRequest) {
       formName,
       targetConnection: targetConnection._id,
       stageId,
+      sourceId: normalizedSourceId,
       fieldMapping: normalizedMapping,
+      hiddenFields: normalizedHiddenFields,
       duplicateCheck: duplicateCheck ?? true,
     });
 

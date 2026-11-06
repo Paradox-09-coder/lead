@@ -90,6 +90,27 @@ export async function fetchBitrixStagesFromFields(webhookUrl: string): Promise<A
   return (result?.STATUS_ID?.items ?? []).map((item) => ({ id: String(item.ID), name: item.VALUE }));
 }
 
+// Lead sources (the SOURCE_ID dropdown: Facebook, Web, Call, custom ones …).
+// crm.status.list is the proper list; some Bitrix24 plans refuse it, and the
+// same options are in crm.lead.fields' SOURCE_ID, so that is the fallback.
+export async function fetchBitrixSources(webhookUrl: string): Promise<Array<{ id: string; name: string }>> {
+  try {
+    const result = await callBitrix<Array<{ STATUS_ID: string; NAME: string; SORT?: string }>>(
+      webhookUrl,
+      "crm.status.list",
+      { "filter[ENTITY_ID]": "SOURCE" },
+    );
+    const sources = (result ?? [])
+      .sort((a, b) => Number(a.SORT) - Number(b.SORT))
+      .map((source) => ({ id: String(source.STATUS_ID), name: source.NAME }));
+    if (sources.length > 0) return sources;
+  } catch {
+    // Fall through to crm.lead.fields.
+  }
+  const result = await callBitrix<Record<string, RawField>>(webhookUrl, "crm.lead.fields");
+  return (result?.SOURCE_ID?.items ?? []).map((item) => ({ id: String(item.ID), name: item.VALUE }));
+}
+
 // Types a new field can be created with. These are the Bitrix24 user field
 // types that a text answer from a Facebook form can sensibly be written to;
 // file, employee, address, money and CRM-link fields need structured values.

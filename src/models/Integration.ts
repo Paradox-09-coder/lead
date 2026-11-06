@@ -13,6 +13,18 @@ export interface FieldMappingEntry {
   crmItems?: { id: string; value: string }[];
 }
 
+// A "hidden field": a CRM field that gets the same fixed value on every lead of
+// the integration, no matter what the Facebook form asked. The type info is
+// copied from the CRM when the integration is saved, like for `FieldMappingEntry`.
+export interface HiddenFieldEntry {
+  crmField: string;
+  crmFieldLabel?: string;
+  value: string;
+  crmFieldType?: string;
+  crmFieldMultiple?: boolean;
+  crmItems?: { id: string; value: string }[];
+}
+
 export interface IntegrationDocument extends mongoose.Document {
   user: mongoose.Types.ObjectId;
   name: string;
@@ -22,9 +34,12 @@ export interface IntegrationDocument extends mongoose.Document {
   formName: string;
   targetConnection: mongoose.Types.ObjectId;
   stageId?: string;
+  // Bitrix24 lead source (SOURCE_ID). Absent = the default, "FACEBOOK".
+  sourceId?: string;
   // Absent on integrations created before field mapping existed: those send
   // name / phone / email only.
   fieldMapping?: FieldMappingEntry[];
+  hiddenFields?: HiddenFieldEntry[];
   duplicateCheck: boolean;
   status: "active" | "paused";
   createdAt: Date;
@@ -35,6 +50,18 @@ const fieldMappingSchema = new Schema<FieldMappingEntry>(
     questionKey: { type: String, required: true },
     questionLabel: { type: String },
     crmField: { type: String, default: "" },
+    crmFieldType: { type: String },
+    crmFieldMultiple: { type: Boolean },
+    crmItems: { type: [new Schema({ id: String, value: String }, { _id: false })], default: undefined },
+  },
+  { _id: false },
+);
+
+const hiddenFieldSchema = new Schema<HiddenFieldEntry>(
+  {
+    crmField: { type: String, required: true },
+    crmFieldLabel: { type: String },
+    value: { type: String, required: true },
     crmFieldType: { type: String },
     crmFieldMultiple: { type: Boolean },
     crmItems: { type: [new Schema({ id: String, value: String }, { _id: false })], default: undefined },
@@ -83,8 +110,15 @@ const integrationSchema = new Schema<IntegrationDocument>(
     stageId: {
       type: String,
     },
+    sourceId: {
+      type: String,
+    },
     fieldMapping: {
       type: [fieldMappingSchema],
+      default: undefined,
+    },
+    hiddenFields: {
+      type: [hiddenFieldSchema],
       default: undefined,
     },
     duplicateCheck: {

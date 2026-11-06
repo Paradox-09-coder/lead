@@ -1,5 +1,10 @@
 import { Connection } from "@/models/Connection";
-import { Integration, type FieldMappingEntry, type IntegrationDocument } from "@/models/Integration";
+import {
+  Integration,
+  type FieldMappingEntry,
+  type HiddenFieldEntry,
+  type IntegrationDocument,
+} from "@/models/Integration";
 import { Lead, type LeadDocument } from "@/models/Lead";
 import { pushLeadToCrm, type CrmLeadMeta, type LeadFields } from "@/lib/crm-push";
 import { FACEBOOK_GRAPH_VERSION } from "@/lib/facebook-oauth";
@@ -35,7 +40,24 @@ export function extractFields(fieldData: FacebookFieldDatum[]): LeadFields {
 
 const UTM_KEYS = ["source", "medium", "campaign", "content", "term"] as const;
 
-function crmLeadMeta(lead: LeadDocument, fieldMapping?: FieldMappingEntry[]): CrmLeadMeta {
+// What an integration decides about the lead it delivers, besides where it goes.
+export interface IntegrationDeliveryOptions {
+  fieldMapping?: FieldMappingEntry[];
+  // Bitrix24 lead source (SOURCE_ID); Facebook's own source when absent.
+  sourceId?: string;
+  hiddenFields?: HiddenFieldEntry[];
+}
+
+// The delivery settings stored on an integration.
+export function integrationDeliveryOptions(integration: IntegrationDocument): IntegrationDeliveryOptions {
+  return {
+    fieldMapping: integration.fieldMapping,
+    sourceId: integration.sourceId,
+    hiddenFields: integration.hiddenFields,
+  };
+}
+
+function crmLeadMeta(lead: LeadDocument, options: IntegrationDeliveryOptions): CrmLeadMeta {
   const name = lead.fields?.name;
   if (lead.source === "form") {
     const formName = lead.webFormName ?? "Veb-forma";
@@ -57,10 +79,13 @@ function crmLeadMeta(lead: LeadDocument, fieldMapping?: FieldMappingEntry[]): Cr
   }
   return {
     title: name ? `Facebook lead — ${name}` : "Facebook lead",
-    sourceId: "FACEBOOK",
+    sourceId: options.sourceId || "FACEBOOK",
     sourceDescription: lead.formName ? `LeadSync Facebook forma: ${lead.formName}` : undefined,
-    fieldMapping,
+    // UTM tags are always filled in, never asked for.
+    utm: { source: "facebook", medium: "lead_ads", content: lead.formName },
+    fieldMapping: options.fieldMapping,
     answers: Array.isArray(lead.rawFieldData) ? (lead.rawFieldData as FacebookFieldDatum[]) : undefined,
+    hiddenFields: options.hiddenFields,
   };
 }
 
@@ -69,7 +94,7 @@ function crmLeadMeta(lead: LeadDocument, fieldMapping?: FieldMappingEntry[]): Cr
 // linked to that card instead of creating a second one.
 export async function deliverLeadToCrm(
   lead: LeadDocument,
-  options: { duplicateCheck?: boolean; fieldMapping?: FieldMappingEntry[] } = {},
+  options: IntegrationDeliveryOptions & { duplicateCheck?: boolean } = {},
 ): Promise<LeadDocument> {
   if (!lead.targetConnection) {
     lead.status = "saved";
@@ -80,7 +105,7 @@ export async function deliverLeadToCrm(
   const connection = await Connection.findById(lead.targetConnection).select("+webhookUrl +jwtToken");
   try {
     if (!connection) throw new Error("CRM ulanishi topilmadi (o'chirilgan bo'lishi mumkin)");
-    const result = await pushLeadToCrm(connection, lead.fields, lead.stageId, crmLeadMeta(lead, options.fieldMapping), options);
+    const result = await pushLeadToCrm(connection, lead.fields, lead.stageId, crmLeadMeta(lead, options), options);
     lead.crmLeadId = result.id;
     lead.crmDuplicate = result.duplicate || undefined;
     lead.status = "success";
@@ -179,7 +204,7 @@ export async function processFacebookLead(value: LeadgenChangeValue): Promise<vo
   }
   await deliverLeadToCrm(lead, {
     duplicateCheck: integration.duplicateCheck,
-    fieldMapping: integration.fieldMapping,
+    ...integrationDeliveryOptions(integration),
   });
 }
 
@@ -189,7 +214,7 @@ export async function retryLead(lead: LeadDocument): Promise<LeadDocument> {
   lead.retryCount += 1;
 
   const hasFields = Boolean(lead.fields?.name || lead.fields?.phone || lead.fields?.email);
-  let fieldMapping: FieldMappingEntry[] | undefined;
+  let deliveryOptions: IntegrationDeliveryOptions = {};
   if (lead.source === "facebook" && lead.pageId && lead.formId) {
     const current = await findIntegration(lead.pageId, lead.formId);
     if (current) {
@@ -197,7 +222,7 @@ export async function retryLead(lead: LeadDocument): Promise<LeadDocument> {
       lead.targetConnection = current.targetConnection;
       lead.stageId = current.stageId;
       lead.formName = current.formName;
-      fieldMapping = current.fieldMapping;
+      deliveryOptions = integrationDeliveryOptions(current);
     }
   }
   if (!hasFields && lead.source === "facebook" && lead.leadgenId && lead.integration) {
@@ -219,5 +244,5 @@ export async function retryLead(lead: LeadDocument): Promise<LeadDocument> {
     }
   }
 
-  return deliverLeadToCrm(lead, { fieldMapping });
+  return deliverLeadToCrm(lead, deliveryOptions);
 }

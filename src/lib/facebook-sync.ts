@@ -2,7 +2,12 @@ import { Connection, type ConnectionDocument } from "@/models/Connection";
 import { Integration, type IntegrationDocument } from "@/models/Integration";
 import { Lead } from "@/models/Lead";
 import { FACEBOOK_GRAPH_VERSION } from "@/lib/facebook-oauth";
-import { deliverLeadToCrm, extractFields, type FacebookFieldDatum } from "@/lib/lead-delivery";
+import {
+  deliverLeadToCrm,
+  extractFields,
+  integrationDeliveryOptions,
+  type FacebookFieldDatum,
+} from "@/lib/lead-delivery";
 
 // Pulls leads straight from each active integration's Facebook form
 // (GET /{form-id}/leads) and stores the ones LeadSync never received. This is
@@ -122,7 +127,7 @@ async function importFormLeads(
     }
     // A missed webhook may still have reached the CRM some other way (e.g. the
     // CRM's own Facebook connector), so always match before creating.
-    await deliverLeadToCrm(lead, { duplicateCheck: true, fieldMapping: integration.fieldMapping });
+    await deliverLeadToCrm(lead, { duplicateCheck: true, ...integrationDeliveryOptions(integration) });
     imported++;
   }
   return imported;

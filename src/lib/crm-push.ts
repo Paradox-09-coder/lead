@@ -1,8 +1,8 @@
 import type { ConnectionDocument } from "@/models/Connection";
 import type { LeadUtm } from "@/models/Lead";
-import type { FieldMappingEntry } from "@/models/Integration";
+import type { FieldMappingEntry, HiddenFieldEntry } from "@/models/Integration";
 import { bitrixMethodUrl } from "@/lib/bitrix-fields";
-import { buildMappedFields, type FacebookAnswer } from "@/lib/field-mapping";
+import { buildHiddenFields, buildMappedFields, type FacebookAnswer } from "@/lib/field-mapping";
 
 export interface LeadFields {
   name?: string;
@@ -21,6 +21,9 @@ export interface CrmLeadMeta {
   // the lead's raw answers. Without both, name/phone/email are sent as before.
   fieldMapping?: FieldMappingEntry[];
   answers?: FacebookAnswer[];
+  // Facebook leads only: fixed values the integration writes to CRM fields on
+  // every lead, whatever the form asked (Bitrix24 only).
+  hiddenFields?: HiddenFieldEntry[];
 }
 
 // Pushes a lead into Bitrix24 via crm.lead.add on the connection's inbound
@@ -56,6 +59,24 @@ async function pushToBitrix24(
       PHONE: fields.phone ? [{ VALUE: fields.phone, VALUE_TYPE: "WORK" }] : undefined,
       EMAIL: fields.email ? [{ VALUE: fields.email, VALUE_TYPE: "WORK" }] : undefined,
     };
+  }
+
+  if (meta.hiddenFields && meta.hiddenFields.length > 0) {
+    // A hidden field is the user's explicit choice, so it wins over the same
+    // field filled from an answer. Lists (phones, emails, multiple-value
+    // fields) are added to, and the comment is appended to, not replaced.
+    const hidden = buildHiddenFields(meta.hiddenFields);
+    const comments = [leadFields.COMMENTS];
+    for (const [field, value] of Object.entries(hidden.fields)) {
+      if (field === "COMMENTS") {
+        comments.push(value);
+        continue;
+      }
+      const existing = leadFields[field];
+      leadFields[field] = Array.isArray(existing) && Array.isArray(value) ? [...existing, ...value] : value;
+    }
+    const comment = [...comments, ...hidden.comments].filter(Boolean).join("\n");
+    leadFields.COMMENTS = comment || undefined;
   }
 
   const response = await fetch(bitrixMethodUrl(connection.webhookUrl!, "crm.lead.add"), {

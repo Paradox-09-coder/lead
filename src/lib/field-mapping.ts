@@ -1,5 +1,5 @@
-import type { FieldMappingEntry } from "@/models/Integration";
-import { fetchBitrixLeadFields } from "@/lib/bitrix-fields";
+import type { FieldMappingEntry, HiddenFieldEntry } from "@/models/Integration";
+import { fetchBitrixLeadFields, fetchBitrixSources } from "@/lib/bitrix-fields";
 
 export interface FacebookAnswer {
   name: string;
@@ -42,6 +42,66 @@ export async function normalizeFieldMapping(webhookUrl: string, input: unknown):
       questionKey,
       questionLabel,
       crmField,
+      crmFieldType: def.type,
+      crmFieldMultiple: def.multiple || undefined,
+      crmItems: def.type === "enumeration" ? def.items : undefined,
+    });
+  }
+  return entries;
+}
+
+// Checks a chosen lead source against the CRM's source list. Empty = "use the
+// default" (undefined). If the CRM cannot list its sources, the id is trusted.
+export async function normalizeSourceId(webhookUrl: string, input: unknown): Promise<string | undefined> {
+  const id = typeof input === "string" ? input.trim().slice(0, 100) : "";
+  if (!id) return undefined;
+  const sources = await fetchBitrixSources(webhookUrl);
+  if (sources.length > 0 && !sources.some((source) => source.id === id)) {
+    throw new FieldMappingError(`Bitrix24'da "${id}" istochniki topilmadi`);
+  }
+  return id;
+}
+
+export interface HiddenFieldInput {
+  crmField?: unknown;
+  value?: unknown;
+}
+
+const MAX_HIDDEN_FIELDS = 50;
+const MAX_HIDDEN_VALUE = 500;
+
+// Validates the hidden fields sent by the dashboard against the CRM's real
+// field list and fills in each field's type/options. A row without a field or
+// without a value is dropped. Throws FieldMappingError for a field the CRM does
+// not have, or a list value that is not one of the field's options.
+export async function normalizeHiddenFields(webhookUrl: string, input: unknown): Promise<HiddenFieldEntry[]> {
+  if (!Array.isArray(input)) throw new FieldMappingError("Yashirin maydonlar noto'g'ri");
+  const defs = new Map((await fetchBitrixLeadFields(webhookUrl)).map((def) => [def.id, def]));
+
+  const seen = new Set<string>();
+  const entries: HiddenFieldEntry[] = [];
+  for (const raw of (input as HiddenFieldInput[]).slice(0, MAX_HIDDEN_FIELDS)) {
+    const crmField = typeof raw.crmField === "string" ? raw.crmField : "";
+    const value = typeof raw.value === "string" ? raw.value.trim().slice(0, MAX_HIDDEN_VALUE) : "";
+    if (!crmField || !value) continue;
+
+    const def = defs.get(crmField);
+    if (!def) throw new FieldMappingError(`Bitrix24'da "${crmField}" maydoni topilmadi`);
+    // A single-value field holds one fixed value; a second row for it would just overwrite the first.
+    const repeatable = def.multiple || def.type === "crm_multifield";
+    if (!repeatable && seen.has(crmField)) continue;
+    seen.add(crmField);
+
+    if (def.type === "enumeration") {
+      const lowered = value.toLowerCase();
+      if (!def.items?.some((item) => item.id === value || item.value.toLowerCase() === lowered)) {
+        throw new FieldMappingError(`"${def.label}" maydonida "${value}" varianti yo'q`);
+      }
+    }
+    entries.push({
+      crmField,
+      crmFieldLabel: def.label,
+      value,
       crmFieldType: def.type,
       crmFieldMultiple: def.multiple || undefined,
       crmItems: def.type === "enumeration" ? def.items : undefined,
@@ -139,4 +199,23 @@ export function buildMappedFields(mapping: FieldMappingEntry[], answers: Faceboo
   }
 
   return { fields, comments };
+}
+
+// Turns an integration's hidden fields into crm.lead.add fields. They go
+// through the same conversion as form answers (list option, number, yes/no …),
+// each hidden field being treated as a question that is always answered.
+export function buildHiddenFields(entries: HiddenFieldEntry[]): MappedLeadFields {
+  const mapping: FieldMappingEntry[] = entries.map((entry, index) => ({
+    questionKey: `hidden_${index}`,
+    questionLabel: entry.crmFieldLabel || entry.crmField,
+    crmField: entry.crmField,
+    crmFieldType: entry.crmFieldType,
+    crmFieldMultiple: entry.crmFieldMultiple,
+    crmItems: entry.crmItems,
+  }));
+  const answers: FacebookAnswer[] = entries.map((entry, index) => ({
+    name: `hidden_${index}`,
+    values: [entry.value],
+  }));
+  return buildMappedFields(mapping, answers);
 }

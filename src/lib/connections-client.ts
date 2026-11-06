@@ -94,6 +94,20 @@ export async function fetchCrmStages(connectionId: string): Promise<CrmStage[]> 
   return (await response.json()) as CrmStage[];
 }
 
+// A lead source of the CRM (Bitrix24's SOURCE_ID list).
+export interface CrmSource {
+  id: string;
+  name: string;
+}
+
+export async function fetchCrmSources(connectionId: string): Promise<CrmSource[]> {
+  const response = await fetch(`/api/connections/${connectionId}/sources`);
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "Istochniklar ro'yxati olinmadi"));
+  }
+  return (await response.json()) as CrmSource[];
+}
+
 // A CRM lead field a form answer can be written to (Bitrix24: standard and custom).
 export interface CrmField {
   id: string;

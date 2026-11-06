@@ -5,15 +5,24 @@ import { RefreshCw } from "lucide-react";
 import { Modal } from "@/components/modals/Modal";
 import { Select } from "@/components/ui/Select";
 import { FieldMappingEditor, suggestMapping } from "@/components/modals/FieldMappingEditor";
+import {
+  HiddenFieldsEditor,
+  rowsFromSaved,
+  rowsToInput,
+  type ExtraFieldRow,
+} from "@/components/modals/HiddenFieldsEditor";
+import {
+  IntegrationSectionButtons,
+  IntegrationSubView,
+  type IntegrationView,
+} from "@/components/modals/IntegrationSections";
+import { useCrmTarget } from "@/components/modals/useCrmTarget";
 import { CONNECT_PLATFORMS } from "@/lib/mock-data";
 import {
-  fetchCrmStages,
-  fetchCrmFields,
   createCrmField,
   type NewCrmFieldInput,
   fetchFacebookForms,
   type Connection,
-  type CrmStage,
   type CrmField,
   type FacebookQuestion,
 } from "@/lib/connections-client";
@@ -41,38 +50,25 @@ export function EditIntegrationModal({
   const { t } = useT();
   const crmConnections = connections.filter((c) => c.platform === "bitrix24" || c.platform === "amocrm");
 
+  const [view, setView] = useState<IntegrationView>("main");
   const [name, setName] = useState(integration.name);
   // A stale integration may point at a deleted CRM; start empty so the user picks a live one.
   const [target, setTarget] = useState(
     crmConnections.some((c) => c._id === integration.targetConnectionId) ? integration.targetConnectionId : "",
   );
-  const [stages, setStages] = useState<CrmStage[]>([]);
-  const [isLoadingStages, setIsLoadingStages] = useState(false);
-  const [stagesError, setStagesError] = useState<string | null>(null);
   const [stageId, setStageId] = useState(integration.stageId ?? "");
+  const [sourceId, setSourceId] = useState(integration.sourceId ?? "");
+  const [extras, setExtras] = useState<ExtraFieldRow[]>(() => rowsFromSaved(integration.hiddenFields ?? []));
   const [duplicateCheck, setDuplicateCheck] = useState(integration.duplicateCheck);
   const [formQuestions, setFormQuestions] = useState<FacebookQuestion[] | null>(null);
-  const [crmFields, setCrmFields] = useState<CrmField[]>([]);
-  const [isLoadingFields, setIsLoadingFields] = useState(false);
-  const [fieldsError, setFieldsError] = useState<string | null>(null);
   // Choices made by hand in this dialog; the rest follows what is saved, then the suggestion.
   const [mappingOverrides, setMappingOverrides] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!target) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- standard load-then-fetch pattern, not derived state
-    setIsLoadingStages(true);
-    setStagesError(null);
-    fetchCrmStages(target)
-      .then(setStages)
-      .catch((err) => setStagesError(err instanceof Error ? err.message : t("integrationsPage.stagesError")))
-      .finally(() => setIsLoadingStages(false));
-  }, [target, t]);
-
   const targetConnection = crmConnections.find((c) => c._id === target);
   const isBitrixTarget = targetConnection?.platform === "bitrix24";
+  const crm = useCrmTarget(target, isBitrixTarget);
 
   // The form's questions: from Facebook, or (if that fails) from the saved mapping.
   useEffect(() => {
@@ -80,18 +76,6 @@ export function EditIntegrationModal({
       .then((forms) => setFormQuestions(forms.find((f) => f.id === integration.formId)?.questions ?? []))
       .catch(() => setFormQuestions([]));
   }, [integration.facebookConnectionId, integration.formId]);
-
-  useEffect(() => {
-    if (!target || !isBitrixTarget) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- standard load-then-fetch pattern, not derived state
-    setIsLoadingFields(true);
-    setFieldsError(null);
-    fetchCrmFields(target)
-      .then(setCrmFields)
-      .catch((err) => setFieldsError(err instanceof Error ? err.message : t("integrationsPage.fieldsError")))
-      .finally(() => setIsLoadingFields(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-fetch when the selected target id changes
-  }, [target, isBitrixTarget]);
 
   const questions = useMemo<FacebookQuestion[]>(() => {
     if (formQuestions && formQuestions.length > 0) return formQuestions;
@@ -108,25 +92,29 @@ export function EditIntegrationModal({
       target === integration.targetConnectionId
         ? Object.fromEntries(integration.fieldMapping.map((e) => [e.questionKey, e.crmField]))
         : {};
-    return { ...suggestMapping(questions, crmFields), ...saved, ...mappingOverrides };
-  }, [questions, crmFields, target, integration.targetConnectionId, integration.fieldMapping, mappingOverrides]);
+    return { ...suggestMapping(questions, crm.crmFields), ...saved, ...mappingOverrides };
+  }, [questions, crm.crmFields, target, integration.targetConnectionId, integration.fieldMapping, mappingOverrides]);
 
   // Creates a new field in the CRM and adds it to the list the questions pick from.
   async function handleCreateField(input: NewCrmFieldInput): Promise<CrmField> {
     const field = await createCrmField(target, input);
-    setCrmFields((previous) => [...previous, field]);
+    crm.addCrmField(field);
     return field;
   }
 
+  // The stage, source, hidden fields and mapping all belong to one CRM.
   function handleTargetChange(id: string) {
     setTarget(id);
-    setStages([]);
     setStageId("");
-    setStagesError(null);
-    setCrmFields([]);
-    setFieldsError(null);
+    setSourceId("");
+    setExtras([]);
     setMappingOverrides({});
   }
+
+  const extraInputs = rowsToInput(extras);
+  const savedHidden = (integration.hiddenFields ?? []).map(({ crmField, value }) => ({ crmField, value }));
+  const hiddenChanged = JSON.stringify(extraInputs) !== JSON.stringify(savedHidden);
+  const sourceChanged = sourceId !== (integration.sourceId ?? "");
 
   async function handleSave() {
     if (!name.trim() || !target) {
@@ -141,8 +129,12 @@ export function EditIntegrationModal({
         targetConnectionId: target,
         stageId: stageId || null,
         duplicateCheck,
+        // Source and hidden fields are sent only when changed (or the CRM changed,
+        // which clears them server-side), so an unreachable CRM cannot block an unrelated edit.
+        ...(isBitrixTarget && sourceChanged ? { sourceId: sourceId || null } : {}),
+        ...(isBitrixTarget && hiddenChanged ? { hiddenFields: extraInputs } : {}),
         // Only sent when the CRM's fields loaded; a change of CRM clears the old mapping server-side.
-        ...(isBitrixTarget && crmFields.length > 0 && questions.length > 0
+        ...(isBitrixTarget && crm.crmFields.length > 0 && questions.length > 0
           ? {
               fieldMapping: questions.map((q) => ({
                 questionKey: q.key,
@@ -160,124 +152,115 @@ export function EditIntegrationModal({
     }
   }
 
+  const title =
+    view === "fields"
+      ? t("integrationsPage.fieldsTitle")
+      : view === "hidden"
+        ? t("integrationsPage.hiddenTitle")
+        : t("integrationsPage.editTitle");
+
   return (
-    <Modal title={t("integrationsPage.editTitle")} onClose={onClose} widthClassName="max-w-xl">
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium">{t("integrationsPage.nameLabel")}</label>
-          <input value={name} onChange={(event) => setName(event.target.value)} maxLength={120} className={INPUT_CLASS} />
-        </div>
+    <Modal title={title} onClose={onClose} widthClassName="max-w-xl">
+      {view === "main" && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium">{t("integrationsPage.nameLabel")}</label>
+            <input value={name} onChange={(event) => setName(event.target.value)} maxLength={120} className={INPUT_CLASS} />
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium">{t("integrationsPage.stepSource")}</label>
-          <p className="mt-1.5 text-sm text-muted">{integration.source}</p>
-          <p className="mt-1 text-xs text-muted">{t("integrationsPage.sourceFixed")}</p>
-        </div>
+          <div>
+            <label className="block text-sm font-medium">{t("integrationsPage.stepSource")}</label>
+            <p className="mt-1.5 text-sm text-muted">{integration.source}</p>
+            <p className="mt-1 text-xs text-muted">{t("integrationsPage.sourceFixed")}</p>
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium">
-            {t("integrationsPage.targetLabel")} <span className="text-danger">*</span>
-          </label>
-          <Select value={target} onChange={(value) => handleTargetChange(value)}>
-            <option value="" className="bg-surface">
-              {t("integrationsPage.targetPlaceholder")}
-            </option>
-            {crmConnections.map((c) => (
-              <option key={c._id} value={c._id} className="bg-surface">
-                {platformName(c.platform)} — {c.label}
+          <div>
+            <label className="block text-sm font-medium">
+              {t("integrationsPage.targetLabel")} <span className="text-danger">*</span>
+            </label>
+            <Select value={target} onChange={(value) => handleTargetChange(value)}>
+              <option value="" className="bg-surface">
+                {t("integrationsPage.targetPlaceholder")}
               </option>
-            ))}
-          </Select>
-        </div>
+              {crmConnections.map((c) => (
+                <option key={c._id} value={c._id} className="bg-surface">
+                  {platformName(c.platform)} — {c.label}
+                </option>
+              ))}
+            </Select>
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium">{t("integrationsPage.stageLabel")}</label>
-          <Select
-            value={stageId}
-            onChange={(value) => setStageId(value)}
-            disabled={!target || isLoadingStages}
-            allowEmpty
-          >
-            <option value="" className="bg-surface">
-              {!target
-                ? t("integrationsPage.stageNeedTarget")
-                : isLoadingStages
-                  ? t("common.loading")
-                  : t("integrationsPage.stageDefault")}
-            </option>
-            {stages.map((s) => (
-              <option key={s.id} value={s.id} className="bg-surface">
-                {s.name}
-              </option>
-            ))}
-          </Select>
-          {isLoadingStages && (
-            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
-              <RefreshCw className="size-3 animate-spin" />
-              {t("integrationsPage.stagesLoading")}
+          <IntegrationSectionButtons
+            disabled={!target}
+            fieldsSummary={
+              questions.length > 0 ? t("integrationsPage.formFieldsSummary", { count: questions.length }) : undefined
+            }
+            hiddenSummary={
+              extraInputs.length > 0 ? t("integrationsPage.hiddenCount", { count: extraInputs.length }) : undefined
+            }
+            onOpen={setView}
+          />
+
+          {error && <p className="text-sm text-danger">{error}</p>}
+
+          <div className="flex justify-end">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="rounded-md bg-primary hover:bg-primary-hover disabled:opacity-50 text-white px-5 py-2 text-sm font-medium transition-colors"
+            >
+              {isSaving ? t("integrationsPage.saving") : t("integrationsPage.save")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {view === "fields" && (
+        <IntegrationSubView onBack={() => setView("main")}>
+          <p className="mb-3 text-xs text-muted">{t("integrationsPage.fieldsHint")}</p>
+          {!isBitrixTarget && <p className="text-sm text-muted">{t("integrationsPage.fieldsOnlyBitrix")}</p>}
+          {isBitrixTarget && crm.isLoadingFields && (
+            <p className="flex items-center gap-1.5 text-sm text-muted">
+              <RefreshCw className="size-3.5 animate-spin" />
+              {t("integrationsPage.fieldsLoading")}
             </p>
           )}
-          {stagesError && <p className="mt-1.5 text-xs text-danger">{stagesError}</p>}
-        </div>
-
-        {isBitrixTarget && (
-          <div>
-            <label className="block text-sm font-medium">{t("integrationsPage.fieldsTitle")}</label>
-            <p className="mt-1 mb-3 text-xs text-muted">{t("integrationsPage.fieldsHint")}</p>
-            {isLoadingFields && (
-              <p className="flex items-center gap-1.5 text-sm text-muted">
-                <RefreshCw className="size-3.5 animate-spin" />
-                {t("integrationsPage.fieldsLoading")}
-              </p>
-            )}
-            {fieldsError && <p className="text-sm text-danger">{fieldsError}</p>}
-            {!isLoadingFields && !fieldsError && questions.length === 0 && formQuestions !== null && (
-              <p className="text-sm text-muted">{t("integrationsPage.fieldsNoQuestions")}</p>
-            )}
-            {!isLoadingFields && !fieldsError && questions.length > 0 && (
-              <>
-                <FieldMappingEditor
-                  questions={questions}
-                  crmFields={crmFields}
-                  value={mapping}
-                  onChange={setMappingOverrides}
+          {isBitrixTarget && crm.fieldsError && <p className="text-sm text-danger">{crm.fieldsError}</p>}
+          {isBitrixTarget && !crm.isLoadingFields && !crm.fieldsError && questions.length === 0 && formQuestions !== null && (
+            <p className="text-sm text-muted">{t("integrationsPage.fieldsNoQuestions")}</p>
+          )}
+          {isBitrixTarget && !crm.isLoadingFields && !crm.fieldsError && questions.length > 0 && (
+            <>
+              <FieldMappingEditor
+                questions={questions}
+                crmFields={crm.crmFields}
+                value={mapping}
+                onChange={setMappingOverrides}
                 onCreateField={handleCreateField}
-                />
-                <p className="mt-3 text-xs text-muted">{t("integrationsPage.fieldsUnmappedNote")}</p>
-              </>
-            )}
-          </div>
-        )}
+              />
+              <p className="mt-3 text-xs text-muted">{t("integrationsPage.fieldsUnmappedNote")}</p>
+            </>
+          )}
+        </IntegrationSubView>
+      )}
 
-        <label className="flex items-center justify-between rounded-md border border-border px-4 py-3">
-          <span className="text-sm">{t("integrationsPage.duplicateCheck")}</span>
-          <button
-            type="button"
-            onClick={() => setDuplicateCheck((value) => !value)}
-            className={`w-10 h-6 shrink-0 rounded-full transition-colors relative ${
-              duplicateCheck ? "bg-primary" : "bg-surface-hover"
-            }`}
-          >
-            <span
-              className={`absolute top-1 left-1 size-4 rounded-full bg-white transition-transform ${
-                duplicateCheck ? "translate-x-4" : "translate-x-0"
-              }`}
-            />
-          </button>
-        </label>
-
-        {error && <p className="text-sm text-danger">{error}</p>}
-
-        <div className="flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="rounded-md bg-primary hover:bg-primary-hover disabled:opacity-50 text-white px-5 py-2 text-sm font-medium transition-colors"
-          >
-            {isSaving ? t("integrationsPage.saving") : t("integrationsPage.save")}
-          </button>
-        </div>
-      </div>
+      {view === "hidden" && (
+        <IntegrationSubView onBack={() => setView("main")}>
+          <HiddenFieldsEditor
+            targetId={target}
+            isBitrixTarget={isBitrixTarget}
+            crm={crm}
+            stageId={stageId}
+            onStageChange={setStageId}
+            sourceId={sourceId}
+            onSourceChange={setSourceId}
+            extras={extras}
+            onExtrasChange={setExtras}
+            duplicateCheck={duplicateCheck}
+            onDuplicateCheckChange={setDuplicateCheck}
+          />
+        </IntegrationSubView>
+      )}
     </Modal>
   );
 }

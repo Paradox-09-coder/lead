@@ -5,7 +5,12 @@ import { Connection } from "@/models/Connection";
 import { Integration } from "@/models/Integration";
 import { getSessionUserId } from "@/lib/server-session";
 import { toErrorResponseBody } from "@/lib/api-error";
-import { FieldMappingError, normalizeFieldMapping } from "@/lib/field-mapping";
+import {
+  FieldMappingError,
+  normalizeFieldMapping,
+  normalizeHiddenFields,
+  normalizeSourceId,
+} from "@/lib/field-mapping";
 
 export const runtime = "nodejs";
 
@@ -24,8 +29,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       status?: string;
       targetConnectionId?: string;
       stageId?: string | null;
+      sourceId?: string | null;
       duplicateCheck?: boolean;
       fieldMapping?: unknown;
+      hiddenFields?: unknown;
     };
 
     await connectDB();
@@ -52,8 +59,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         platform: { $in: ["bitrix24", "amocrm"] },
       });
       if (!target) return localizedJson({ message: "CRM ulanishi topilmadi" }, { status: 404 });
-      // A mapping names fields of one specific CRM, so it cannot follow a change of CRM.
-      if (target._id.toString() !== integration.targetConnection.toString()) integration.fieldMapping = undefined;
+      // A mapping, a source and hidden fields all name things of one specific
+      // CRM, so they cannot follow a change of CRM.
+      if (target._id.toString() !== integration.targetConnection.toString()) {
+        integration.fieldMapping = undefined;
+        integration.sourceId = undefined;
+        integration.hiddenFields = undefined;
+      }
       integration.targetConnection = target._id;
     }
     if (body.fieldMapping !== undefined) {
@@ -69,6 +81,26 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           const message = error instanceof Error ? error.message : "Maydonlar tekshirilmadi";
           return NextResponse.json({ message }, { status: error instanceof FieldMappingError ? 400 : 502 });
         }
+      }
+    }
+    if (body.sourceId !== undefined || body.hiddenFields !== undefined) {
+      const target = await Connection.findOne({ _id: integration.targetConnection, user: userId }).select(
+        "+webhookUrl",
+      );
+      const isBitrix = target?.platform === "bitrix24";
+      try {
+        if (body.sourceId !== undefined) {
+          integration.sourceId = isBitrix ? await normalizeSourceId(target.webhookUrl!, body.sourceId) : undefined;
+        }
+        if (body.hiddenFields !== undefined) {
+          integration.hiddenFields =
+            isBitrix && Array.isArray(body.hiddenFields) && body.hiddenFields.length > 0
+              ? await normalizeHiddenFields(target.webhookUrl!, body.hiddenFields)
+              : undefined;
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Maydonlar tekshirilmadi";
+        return NextResponse.json({ message }, { status: error instanceof FieldMappingError ? 400 : 502 });
       }
     }
     if (body.stageId !== undefined) integration.stageId = body.stageId || undefined;
