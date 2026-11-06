@@ -92,6 +92,15 @@ const MESSAGES: Record<string, { ru: string; en: string }> = {
   },
   "Bosqichlar ro'yxati olinmadi": { ru: "Не удалось получить список этапов", en: "Could not load the stage list" },
   "Formalar ro'yxati olinmadi": { ru: "Не удалось получить список форм", en: "Could not load the form list" },
+  "Telegram sozlanmagan": { ru: "Telegram не настроен", en: "Telegram is not configured" },
+  "Telegram ma'lumotlari yaroqsiz, ilovani qayta oching": {
+    ru: "Данные Telegram недействительны, откройте приложение заново",
+    en: "Telegram data is invalid, please reopen the app",
+  },
+  "Bu Telegram akkaunt boshqa hisobga ulangan": {
+    ru: "Этот аккаунт Telegram привязан к другой учётной записи",
+    en: "This Telegram account is linked to another account",
+  },
   // OAuth redirect errors (?error= / ?facebook_error=)
   "Xavfsizlik tekshiruvi muvaffaqiyatsiz": { ru: "Проверка безопасности не пройдена", en: "Security check failed" },
   "Xavfsizlik tekshiruvi muvaffaqiyatsiz, qayta urinib ko'ring": {

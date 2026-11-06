@@ -7,6 +7,8 @@ export interface UserDocument extends mongoose.Document {
   // Absent for accounts created through Google until the user sets one.
   password?: string;
   googleId?: string;
+  // Telegram user id, set once the account is linked from the Telegram Mini App.
+  telegramId?: string;
   role: "user" | "admin";
   createdAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
@@ -39,6 +41,11 @@ const userSchema = new Schema<UserDocument>(
       select: false,
     },
     googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    telegramId: {
       type: String,
       unique: true,
       sparse: true,

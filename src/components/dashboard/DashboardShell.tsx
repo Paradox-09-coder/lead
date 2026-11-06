@@ -22,7 +22,8 @@ export function DashboardShell({ children, user }: { children: ReactNode; user?:
         {isMobileNavOpen && (
           <div className="fixed inset-0 z-50 md:hidden">
             <div className="absolute inset-0 bg-black/60" onClick={() => setIsMobileNavOpen(false)} />
-            <div className="absolute inset-y-0 left-0 w-64">
+            {/* Solid backdrop: the sidebar's own background is translucent, so without it the page shows through the drawer. */}
+            <div className="absolute inset-y-0 left-0 w-64 bg-background shadow-2xl">
               <div className="relative h-full">
                 <Sidebar className="flex h-full" />
                 <button

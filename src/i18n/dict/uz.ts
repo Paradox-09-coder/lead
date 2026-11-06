@@ -707,6 +707,20 @@ export const uz = {
       p4: "Agar siz Facebook reklama formasini to'ldirgan bo'lsangiz va ma'lumotingiz o'chirilishini xohlasangiz, {email} ga yozing — qaysi reklama beruvchiga yuborganingizni (yoki telefon/emailingizni) ko'rsating, biz yozuvingizni topib o'chiramiz.",
     },
   },
+  telegram: {
+    connecting: "Telegram orqali kirilmoqda...",
+    linkTitle: "Hisobni Telegram'ga ulang",
+    linkSub: "Bir marta LeadSync email va parolingizni kiriting. Keyingi safar avtomatik kirasiz.",
+    linkSubmit: "Ulash va kirish",
+    linking: "Tekshirilmoqda...",
+    googleNote: "Google orqali ro'yxatdan o'tgan bo'lsangiz, avval saytdagi Sozlamalar bo'limida parol o'rnating.",
+    greeting: "Salom, {name}!",
+    outsideTitle: "Bu sahifa Telegram ichida ochiladi",
+    outsideSub: "LeadSync botini Telegram'da oching. Brauzerda esa oddiy kirish sahifasidan foydalaning.",
+    outsideLogin: "Kirish sahifasiga o'tish",
+    errorTitle: "Telegram orqali kirib bo'lmadi",
+    retry: "Qayta urinish",
+  },
 };
 
 export type Dict = typeof uz;

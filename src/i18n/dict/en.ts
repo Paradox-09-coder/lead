@@ -707,4 +707,18 @@ export const en: Dict = {
       p4: "If you submitted a Facebook ad form and want your data removed, email {email} — tell us which advertiser you submitted to (or your phone/email) and we will find your record and delete it.",
     },
   },
+  telegram: {
+    connecting: "Signing in with Telegram...",
+    linkTitle: "Link your account to Telegram",
+    linkSub: "Enter your LeadSync email and password once. Next time you'll be signed in automatically.",
+    linkSubmit: "Link and sign in",
+    linking: "Checking...",
+    googleNote: "If you signed up with Google, first set a password on the website under Settings.",
+    greeting: "Hi, {name}!",
+    outsideTitle: "This page opens inside Telegram",
+    outsideSub: "Open the LeadSync bot in Telegram. In a browser, use the regular sign-in page.",
+    outsideLogin: "Go to the sign-in page",
+    errorTitle: "Could not sign in with Telegram",
+    retry: "Try again",
+  },
 };
