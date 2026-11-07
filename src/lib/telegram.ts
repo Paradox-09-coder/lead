@@ -60,7 +60,16 @@ export function checkTelegramInitData(
     const expected = crypto.createHmac("sha256", secretKey).update(dataCheckString).digest();
     return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
   });
-  if (!matches) return { reason: "bad_signature", fields: sorted.map(([key]) => key) };
+  if (!matches) {
+    // `auth_date` is not trusted here (the signature failed); it is only logged, to tell a
+    // window opened long ago (signed with an older token) from a fresh launch.
+    const claimed = Number(params.get("auth_date"));
+    return {
+      reason: "bad_signature",
+      fields: sorted.map(([key]) => key),
+      ageSeconds: Number.isFinite(claimed) && claimed > 0 ? Math.round(nowMs / 1000 - claimed) : undefined,
+    };
+  }
 
   const authDate = Number(params.get("auth_date"));
   if (!Number.isFinite(authDate) || authDate <= 0) return { reason: "malformed" };
