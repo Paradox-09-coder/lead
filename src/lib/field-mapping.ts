@@ -1,5 +1,7 @@
 import type { FieldMappingEntry, HiddenFieldEntry } from "@/models/Integration";
-import { fetchBitrixLeadFields, fetchBitrixSources } from "@/lib/bitrix-fields";
+import { fetchBitrixLeadFields, fetchBitrixSources, type CrmFieldDef } from "@/lib/bitrix-fields";
+import { fetchAmoLeadFields, type AmoFieldLabels } from "@/lib/amocrm";
+import type { ConnectionDocument } from "@/models/Connection";
 
 export interface FacebookAnswer {
   name: string;
@@ -16,12 +18,21 @@ const MAX_ENTRIES = 100;
 
 export class FieldMappingError extends Error {}
 
+// The lead fields of a connected CRM. The connection must be loaded with
+// +webhookUrl (Bitrix24) or +jwtToken (amoCRM).
+export function loadCrmFields(connection: ConnectionDocument, labels?: AmoFieldLabels): Promise<CrmFieldDef[]> {
+  if (connection.platform === "amocrm") {
+    return fetchAmoLeadFields({ accountUrl: connection.accountUrl!, token: connection.jwtToken! }, labels);
+  }
+  return fetchBitrixLeadFields(connection.webhookUrl!);
+}
+
 // Validates a mapping sent by the dashboard against the CRM's real field list
 // and fills in each field's type/options. Throws FieldMappingError when a
-// chosen field does not exist (e.g. it was deleted in Bitrix24 meanwhile).
-export async function normalizeFieldMapping(webhookUrl: string, input: unknown): Promise<FieldMappingEntry[]> {
+// chosen field does not exist (e.g. it was deleted in the CRM meanwhile).
+export async function normalizeFieldMapping(connection: ConnectionDocument, input: unknown): Promise<FieldMappingEntry[]> {
   if (!Array.isArray(input)) throw new FieldMappingError("Maydonlar moslamasi noto'g'ri");
-  const defs = new Map((await fetchBitrixLeadFields(webhookUrl)).map((def) => [def.id, def]));
+  const defs = new Map((await loadCrmFields(connection)).map((def) => [def.id, def]));
 
   const seen = new Set<string>();
   const entries: FieldMappingEntry[] = [];
@@ -37,7 +48,7 @@ export async function normalizeFieldMapping(webhookUrl: string, input: unknown):
       continue;
     }
     const def = defs.get(crmField);
-    if (!def) throw new FieldMappingError(`Bitrix24'da "${crmField}" maydoni topilmadi`);
+    if (!def) throw new FieldMappingError(`CRM'da "${crmField}" maydoni topilmadi`);
     entries.push({
       questionKey,
       questionLabel,
@@ -74,9 +85,9 @@ const MAX_HIDDEN_VALUE = 500;
 // field list and fills in each field's type/options. A row without a field or
 // without a value is dropped. Throws FieldMappingError for a field the CRM does
 // not have, or a list value that is not one of the field's options.
-export async function normalizeHiddenFields(webhookUrl: string, input: unknown): Promise<HiddenFieldEntry[]> {
+export async function normalizeHiddenFields(connection: ConnectionDocument, input: unknown): Promise<HiddenFieldEntry[]> {
   if (!Array.isArray(input)) throw new FieldMappingError("Yashirin maydonlar noto'g'ri");
-  const defs = new Map((await fetchBitrixLeadFields(webhookUrl)).map((def) => [def.id, def]));
+  const defs = new Map((await loadCrmFields(connection)).map((def) => [def.id, def]));
 
   const seen = new Set<string>();
   const entries: HiddenFieldEntry[] = [];
@@ -86,7 +97,7 @@ export async function normalizeHiddenFields(webhookUrl: string, input: unknown):
     if (!crmField || !value) continue;
 
     const def = defs.get(crmField);
-    if (!def) throw new FieldMappingError(`Bitrix24'da "${crmField}" maydoni topilmadi`);
+    if (!def) throw new FieldMappingError(`CRM'da "${crmField}" maydoni topilmadi`);
     // A single-value field holds one fixed value; a second row for it would just overwrite the first.
     const repeatable = def.multiple || def.type === "crm_multifield";
     if (!repeatable && seen.has(crmField)) continue;

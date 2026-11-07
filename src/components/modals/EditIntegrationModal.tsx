@@ -132,9 +132,9 @@ export function EditIntegrationModal({
         // Source and hidden fields are sent only when changed (or the CRM changed,
         // which clears them server-side), so an unreachable CRM cannot block an unrelated edit.
         ...(isBitrixTarget && sourceChanged ? { sourceId: sourceId || null } : {}),
-        ...(isBitrixTarget && hiddenChanged ? { hiddenFields: extraInputs } : {}),
+        ...(hiddenChanged ? { hiddenFields: extraInputs } : {}),
         // Only sent when the CRM's fields loaded; a change of CRM clears the old mapping server-side.
-        ...(isBitrixTarget && crm.crmFields.length > 0 && questions.length > 0
+        ...(crm.crmFields.length > 0 && questions.length > 0
           ? {
               fieldMapping: questions.map((q) => ({
                 questionKey: q.key,
@@ -218,18 +218,17 @@ export function EditIntegrationModal({
       {view === "fields" && (
         <IntegrationSubView onBack={() => setView("main")}>
           <p className="mb-3 text-xs text-muted">{t("integrationsPage.fieldsHint")}</p>
-          {!isBitrixTarget && <p className="text-sm text-muted">{t("integrationsPage.fieldsOnlyBitrix")}</p>}
-          {isBitrixTarget && crm.isLoadingFields && (
+          {crm.isLoadingFields && (
             <p className="flex items-center gap-1.5 text-sm text-muted">
               <RefreshCw className="size-3.5 animate-spin" />
               {t("integrationsPage.fieldsLoading")}
             </p>
           )}
-          {isBitrixTarget && crm.fieldsError && <p className="text-sm text-danger">{crm.fieldsError}</p>}
-          {isBitrixTarget && !crm.isLoadingFields && !crm.fieldsError && questions.length === 0 && formQuestions !== null && (
+          {crm.fieldsError && <p className="text-sm text-danger">{crm.fieldsError}</p>}
+          {!crm.isLoadingFields && !crm.fieldsError && questions.length === 0 && formQuestions !== null && (
             <p className="text-sm text-muted">{t("integrationsPage.fieldsNoQuestions")}</p>
           )}
-          {isBitrixTarget && !crm.isLoadingFields && !crm.fieldsError && questions.length > 0 && (
+          {!crm.isLoadingFields && !crm.fieldsError && questions.length > 0 && (
             <>
               <FieldMappingEditor
                 questions={questions}
@@ -237,6 +236,7 @@ export function EditIntegrationModal({
                 value={mapping}
                 onChange={setMappingOverrides}
                 onCreateField={handleCreateField}
+                listMultipleOnly={!isBitrixTarget}
               />
               <p className="mt-3 text-xs text-muted">{t("integrationsPage.fieldsUnmappedNote")}</p>
             </>

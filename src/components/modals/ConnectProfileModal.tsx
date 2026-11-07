@@ -141,19 +141,6 @@ export function ConnectProfileModal({
         </div>
       )}
 
-      {platform.id === "google" && (
-        <div className="text-center py-6">
-          <p className="text-sm text-muted">{t("connectModal.googleHint", { name: platform.name })}</p>
-          <button
-            disabled
-            className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary/50 text-white px-4 py-2 text-sm cursor-not-allowed"
-          >
-            <ExternalLink className="size-4" />
-            {t("connectModal.continueWith", { name: platform.name })}
-          </button>
-        </div>
-      )}
-
       {platform.id === "bitrix24" && (
         <div className="space-y-4">
           <div>

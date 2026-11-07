@@ -69,10 +69,12 @@ const INPUT_CLASS =
 // Inline form for creating a new CRM field for one question.
 function NewFieldForm({
   initialLabel,
+  listMultipleOnly,
   onCreate,
   onCancel,
 }: {
   initialLabel: string;
+  listMultipleOnly?: boolean;
   onCreate: (input: NewCrmFieldInput) => Promise<void>;
   onCancel: () => void;
 }) {
@@ -88,13 +90,14 @@ function NewFieldForm({
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
+  const canBeMultiple = type !== "boolean" && (!listMultipleOnly || type === "enumeration");
   const canSave = label.trim() !== "" && (type !== "enumeration" || options.length > 0);
 
   async function handleCreate() {
     setIsSaving(true);
     setError(null);
     try {
-      await onCreate({ label: label.trim(), type, multiple: type !== "boolean" && multiple, options });
+      await onCreate({ label: label.trim(), type, multiple: canBeMultiple && multiple, options });
     } catch (err) {
       setError(err instanceof Error ? err.message : t("integrationsPage.fieldsNewError"));
       setIsSaving(false);
@@ -140,7 +143,7 @@ function NewFieldForm({
         </div>
       )}
 
-      {type !== "boolean" && (
+      {canBeMultiple && (
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -187,6 +190,7 @@ export function FieldMappingEditor({
   value,
   onChange,
   onCreateField,
+  listMultipleOnly,
 }: {
   questions: FacebookQuestion[];
   crmFields: CrmField[];
@@ -194,6 +198,8 @@ export function FieldMappingEditor({
   onChange: (next: Record<string, string>) => void;
   // Creates a new field in the CRM; when given, each question offers "new field".
   onCreateField?: (input: NewCrmFieldInput) => Promise<CrmField>;
+  // amoCRM: only a list field can hold several values.
+  listMultipleOnly?: boolean;
 }) {
   const { t } = useT();
   const [creatingFor, setCreatingFor] = useState<string | null>(null);
@@ -242,6 +248,7 @@ export function FieldMappingEditor({
           {onCreateField && creatingFor === question.key && (
             <NewFieldForm
               initialLabel={question.label}
+              listMultipleOnly={listMultipleOnly}
               onCancel={() => setCreatingFor(null)}
               onCreate={async (input) => {
                 const field = await onCreateField(input);

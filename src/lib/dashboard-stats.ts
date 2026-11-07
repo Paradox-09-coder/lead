@@ -26,7 +26,7 @@ export interface HomeStats {
   week: PeriodStat;
   month: PeriodStat;
   recent: RecentLead[];
-  hasAccountConnection: boolean; // a Facebook or Google account is connected
+  hasAccountConnection: boolean; // a Facebook account is connected
   hasIntegration: boolean;
 }
 
@@ -59,7 +59,7 @@ export async function getHomeStats(userId: string): Promise<HomeStats> {
       },
     ]),
     Lead.find({ user }).sort({ createdAt: -1 }).limit(10),
-    Connection.exists({ user, platform: { $in: ["facebook", "google"] } }),
+    Connection.exists({ user, platform: "facebook" }),
     Integration.exists({ user }),
   ]);
 

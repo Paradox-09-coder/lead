@@ -3,7 +3,8 @@ import { getT } from "@/i18n/server";
 
 export async function LogoCarousel() {
   const { t } = await getT();
-  const track = [...CAROUSEL_LOGOS, ...CAROUSEL_LOGOS];
+  // Four copies: the list is short, and the marquee shifts by half its width.
+  const track = [...CAROUSEL_LOGOS, ...CAROUSEL_LOGOS, ...CAROUSEL_LOGOS, ...CAROUSEL_LOGOS];
 
   return (
     <section className="border-y border-border bg-surface/50 py-10 overflow-hidden">

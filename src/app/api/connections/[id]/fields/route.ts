@@ -3,18 +3,32 @@ import { localizedJson } from "@/i18n/api";
 import { connectDB } from "@/lib/mongodb";
 import { Connection } from "@/models/Connection";
 import { getSessionUserId } from "@/lib/server-session";
-import {
-  CREATABLE_FIELD_TYPES,
-  createBitrixLeadField,
-  fetchBitrixLeadFields,
-  type CreatableFieldType,
-} from "@/lib/bitrix-fields";
+import { CREATABLE_FIELD_TYPES, createBitrixLeadField, type CreatableFieldType } from "@/lib/bitrix-fields";
+import { createAmoLeadField, type AmoFieldLabels } from "@/lib/amocrm";
+import { loadCrmFields } from "@/lib/field-mapping";
+import { getT } from "@/i18n/server";
 import { toErrorResponseBody } from "@/lib/api-error";
 
 export const runtime = "nodejs";
 
+const CRM_PLATFORMS = { $in: ["bitrix24", "amocrm"] as Array<"bitrix24" | "amocrm"> };
+
+// amoCRM has no field list for these standard fields, so their names are ours.
+async function amoLabels(): Promise<AmoFieldLabels> {
+  const { t } = await getT();
+  return {
+    name: t("integrationsPage.amoName"),
+    lastName: t("integrationsPage.amoLastName"),
+    phone: t("integrationsPage.amoPhone"),
+    email: t("integrationsPage.amoEmail"),
+    position: t("integrationsPage.amoPosition"),
+    price: t("integrationsPage.amoPrice"),
+    contactSuffix: t("integrationsPage.amoContact"),
+  };
+}
+
 // GET /api/connections/<id>/fields — the CRM lead fields (standard and custom)
-// that a Facebook form question can be mapped to. Bitrix24 only for now.
+// that a Facebook form question can be mapped to.
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const userId = await getSessionUserId();
@@ -24,15 +38,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   try {
     await connectDB();
-    const connection = await Connection.findOne({ _id: id, user: userId, platform: "bitrix24" }).select(
-      "+webhookUrl",
+    const connection = await Connection.findOne({ _id: id, user: userId, platform: CRM_PLATFORMS }).select(
+      "+webhookUrl +jwtToken",
     );
-    if (!connection?.webhookUrl) {
+    if (!connection) {
       return localizedJson({ message: "CRM ulanishi topilmadi" }, { status: 404 });
     }
 
     try {
-      return NextResponse.json(await fetchBitrixLeadFields(connection.webhookUrl));
+      return NextResponse.json(await loadCrmFields(connection, await amoLabels()));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Maydonlar ro'yxati olinmadi";
       return NextResponse.json({ message }, { status: 502 });
@@ -88,20 +102,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     await connectDB();
-    const connection = await Connection.findOne({ _id: id, user: userId, platform: "bitrix24" }).select(
-      "+webhookUrl",
+    const connection = await Connection.findOne({ _id: id, user: userId, platform: CRM_PLATFORMS }).select(
+      "+webhookUrl +jwtToken",
     );
-    if (!connection?.webhookUrl) {
+    if (!connection) {
       return localizedJson({ message: "CRM ulanishi topilmadi" }, { status: 404 });
     }
 
     try {
-      const field = await createBitrixLeadField(connection.webhookUrl, {
-        label,
-        type,
-        multiple: body?.multiple === true,
-        options,
-      });
+      const input = { label, type, multiple: body?.multiple === true, options };
+      const field =
+        connection.platform === "amocrm"
+          ? await createAmoLeadField(
+              { accountUrl: connection.accountUrl!, token: connection.jwtToken! },
+              input,
+              await amoLabels(),
+            )
+          : await createBitrixLeadField(connection.webhookUrl!, input);
       return NextResponse.json(field, { status: 201 });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Maydon yaratilmadi";

@@ -59,7 +59,7 @@ export function NewIntegrationModal({
 
   const facebookConnections = connections.filter((c) => c.platform === "facebook");
   const selectedConnection = facebookConnections.find((c) => c._id === facebookConnectionId);
-  const crmConnections = connections.filter((c) => c.platform !== "facebook");
+  const crmConnections = connections.filter((c) => c.platform === "bitrix24" || c.platform === "amocrm");
   const targetConnection = crmConnections.find((c) => c._id === target);
   const isBitrixTarget = targetConnection?.platform === "bitrix24";
   const crm = useCrmTarget(target, isBitrixTarget);
@@ -149,10 +149,10 @@ export function NewIntegrationModal({
         targetConnectionId: targetConnection._id,
         stageId: stageId || undefined,
         sourceId: isBitrixTarget && sourceId ? sourceId : undefined,
-        hiddenFields: isBitrixTarget && extraInputs.length > 0 ? extraInputs : undefined,
+        hiddenFields: extraInputs.length > 0 ? extraInputs : undefined,
         // Only sent when the CRM's fields loaded; otherwise name/phone/email go as before.
         fieldMapping:
-          isBitrixTarget && crm.crmFields.length > 0 && questions.length > 0
+          crm.crmFields.length > 0 && questions.length > 0
             ? questions.map((q) => ({ questionKey: q.key, questionLabel: q.label, crmField: mapping[q.key] ?? "" }))
             : undefined,
         duplicateCheck,
@@ -299,29 +299,27 @@ export function NewIntegrationModal({
         <IntegrationSubView onBack={() => setView("main")}>
           <p className="mb-3 text-xs text-muted">{t("integrationsPage.fieldsHint")}</p>
 
-          {!isBitrixTarget && <p className="text-sm text-muted">{t("integrationsPage.fieldsOnlyBitrix")}</p>}
+          {!formId && <p className="text-sm text-warning">{t("integrationsPage.formPlaceholder")}</p>}
 
-          {isBitrixTarget && !formId && <p className="text-sm text-warning">{t("integrationsPage.formPlaceholder")}</p>}
-
-          {isBitrixTarget && formId && crm.isLoadingFields && (
+          {formId && crm.isLoadingFields && (
             <p className="flex items-center gap-1.5 text-sm text-muted">
               <RefreshCw className="size-3.5 animate-spin" />
               {t("integrationsPage.fieldsLoading")}
             </p>
           )}
 
-          {isBitrixTarget && formId && crm.fieldsError && (
+          {formId && crm.fieldsError && (
             <div className="rounded-md border border-danger/30 bg-danger/10 p-3 text-sm">
               <p className="text-danger">{crm.fieldsError}</p>
               <p className="mt-1 text-xs text-muted">{t("integrationsPage.fieldsFallback")}</p>
             </div>
           )}
 
-          {isBitrixTarget && formId && !crm.isLoadingFields && !crm.fieldsError && questions.length === 0 && (
+          {formId && !crm.isLoadingFields && !crm.fieldsError && questions.length === 0 && (
             <p className="text-sm text-muted">{t("integrationsPage.fieldsNoQuestions")}</p>
           )}
 
-          {isBitrixTarget && formId && !crm.isLoadingFields && !crm.fieldsError && questions.length > 0 && (
+          {formId && !crm.isLoadingFields && !crm.fieldsError && questions.length > 0 && (
             <>
               <FieldMappingEditor
                 questions={questions}
@@ -329,6 +327,7 @@ export function NewIntegrationModal({
                 value={mapping}
                 onChange={setMappingOverrides}
                 onCreateField={handleCreateField}
+                listMultipleOnly={!isBitrixTarget}
               />
               <p className="mt-3 text-xs text-muted">{t("integrationsPage.fieldsUnmappedNote")}</p>
             </>

@@ -1,19 +1,22 @@
-import { Users, Link2, FileText, Send, Globe, ShieldCheck, type LucideIcon } from "lucide-react";
+import { BarChart3, Code, EyeOff, FileText, Link2, ListChecks, Send, Target, Users, type LucideIcon } from "lucide-react";
 import { Reveal } from "@/components/landing/Reveal";
 import { getT } from "@/i18n/server";
 
-type ServiceIcon = "leads" | "crm" | "reports" | "pixel" | "domain" | "security";
+type ServiceIcon = "leads" | "crm" | "fields" | "hidden" | "forms" | "reports" | "conversions" | "telegram" | "api";
 
 const ICONS: Record<ServiceIcon, LucideIcon> = {
   leads: Users,
   crm: Link2,
-  reports: FileText,
-  pixel: Send,
-  domain: Globe,
-  security: ShieldCheck,
+  fields: ListChecks,
+  hidden: EyeOff,
+  forms: FileText,
+  reports: BarChart3,
+  conversions: Target,
+  telegram: Send,
+  api: Code,
 };
 
-const SERVICE_KEYS: ServiceIcon[] = ["leads", "crm", "reports", "pixel", "domain", "security"];
+const SERVICE_KEYS = Object.keys(ICONS) as ServiceIcon[];
 
 export async function ServicesGrid() {
   const { t } = await getT();

@@ -180,111 +180,109 @@ export function HiddenFieldsEditor({
         )}
       </div>
 
-      {targetId && !isBitrixTarget && <p className="text-sm text-muted">{t("integrationsPage.hiddenOnlyBitrix")}</p>}
-
       {isBitrixTarget && (
-        <>
-          <div>
-            <label className="block text-sm font-medium">{t("integrationsPage.sourceFieldLabel")}</label>
-            <Select
-              value={sourceId}
-              onChange={onSourceChange}
-              disabled={crm.isLoadingSources}
-              allowEmpty
-              searchable
-              searchPlaceholder={t("integrationsPage.fieldsSearch")}
-              noResultsLabel={t("integrationsPage.fieldsNoResults")}
-                >
-              <option value="" className="bg-surface">
-                {crm.isLoadingSources ? t("common.loading") : t("integrationsPage.sourceFieldDefault")}
+        <div>
+          <label className="block text-sm font-medium">{t("integrationsPage.sourceFieldLabel")}</label>
+          <Select
+            value={sourceId}
+            onChange={onSourceChange}
+            disabled={crm.isLoadingSources}
+            allowEmpty
+            searchable
+            searchPlaceholder={t("integrationsPage.fieldsSearch")}
+            noResultsLabel={t("integrationsPage.fieldsNoResults")}
+              >
+            <option value="" className="bg-surface">
+              {crm.isLoadingSources ? t("common.loading") : t("integrationsPage.sourceFieldDefault")}
+            </option>
+            {crm.sources.map((source) => (
+              <option key={source.id} value={source.id} className="bg-surface">
+                {source.name}
               </option>
-              {crm.sources.map((source) => (
-                <option key={source.id} value={source.id} className="bg-surface">
-                  {source.name}
-                </option>
+            ))}
+          </Select>
+          {crm.isLoadingSources && (
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
+              <RefreshCw className="size-3 animate-spin" />
+              {t("integrationsPage.sourcesLoading")}
+            </p>
+          )}
+          {crm.sourcesError ? (
+            <p className="mt-1.5 text-xs text-danger">{crm.sourcesError}</p>
+          ) : (
+            <p className="mt-1.5 text-xs text-muted">{t("integrationsPage.sourceFieldHint")}</p>
+          )}
+        </div>
+      )}
+
+      {targetId && (
+        <div>
+          <label className="block text-sm font-medium">{t("integrationsPage.extraTitle")}</label>
+          <p className="mt-1 mb-3 text-xs text-muted">{t("integrationsPage.extraHint")}</p>
+
+          {crm.isLoadingFields && (
+            <p className="flex items-center gap-1.5 text-sm text-muted">
+              <RefreshCw className="size-3.5 animate-spin" />
+              {t("integrationsPage.fieldsLoading")}
+            </p>
+          )}
+          {crm.fieldsError && <p className="text-sm text-danger">{crm.fieldsError}</p>}
+
+          {!crm.isLoadingFields && !crm.fieldsError && (
+            <div className="space-y-3">
+              {extras.length > 0 && (
+                <div className="hidden sm:grid grid-cols-[1fr_1fr_2rem] gap-3 text-xs font-medium text-muted">
+                  <span>{t("integrationsPage.extraFieldLabel")}</span>
+                  <span>{t("integrationsPage.extraValueLabel")}</span>
+                  <span />
+                </div>
+              )}
+              {extras.map((row) => (
+                <div key={row.id} className="grid sm:grid-cols-[1fr_1fr_2rem] gap-3 items-start">
+                  <Select
+                    value={row.crmField}
+                    onChange={(next) => updateRow(row.id, { crmField: next, value: "" })}
+                    searchable
+                    searchPlaceholder={t("integrationsPage.fieldsSearch")}
+                    noResultsLabel={t("integrationsPage.fieldsNoResults")}
+                  >
+                    <option value="">{t("integrationsPage.extraFieldPlaceholder")}</option>
+                    {optionsFor(row.id).map((field) => (
+                      <option key={field.id} value={field.id}>
+                        {field.label}
+                        {field.custom ? ` · ${t("integrationsPage.fieldsCustom")}` : ""}
+                      </option>
+                    ))}
+                  </Select>
+                  <ValueInput
+                    // A new field means a new kind of input, so start it fresh.
+                    key={row.crmField}
+                    field={fieldById.get(row.crmField)}
+                    value={row.value}
+                    onChange={(next) => updateRow(row.id, { value: next })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onExtrasChange(extras.filter((item) => item.id !== row.id))}
+                    className="mt-1.5 p-2 rounded-md text-muted hover:bg-surface-hover hover:text-danger transition-colors"
+                    aria-label={t("integrationsPage.extraRemove")}
+                    title={t("integrationsPage.extraRemove")}
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
               ))}
-            </Select>
-            {crm.isLoadingSources && (
-              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
-                <RefreshCw className="size-3 animate-spin" />
-                {t("integrationsPage.sourcesLoading")}
-              </p>
-            )}
-            {crm.sourcesError ? (
-              <p className="mt-1.5 text-xs text-danger">{crm.sourcesError}</p>
-            ) : (
-              <p className="mt-1.5 text-xs text-muted">{t("integrationsPage.sourceFieldHint")}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">{t("integrationsPage.extraTitle")}</label>
-            <p className="mt-1 mb-3 text-xs text-muted">{t("integrationsPage.extraHint")}</p>
-
-            {crm.isLoadingFields && (
-              <p className="flex items-center gap-1.5 text-sm text-muted">
-                <RefreshCw className="size-3.5 animate-spin" />
-                {t("integrationsPage.fieldsLoading")}
-              </p>
-            )}
-            {crm.fieldsError && <p className="text-sm text-danger">{crm.fieldsError}</p>}
-
-            {!crm.isLoadingFields && !crm.fieldsError && (
-              <div className="space-y-3">
-                {extras.length > 0 && (
-                  <div className="hidden sm:grid grid-cols-[1fr_1fr_2rem] gap-3 text-xs font-medium text-muted">
-                    <span>{t("integrationsPage.extraFieldLabel")}</span>
-                    <span>{t("integrationsPage.extraValueLabel")}</span>
-                    <span />
-                  </div>
-                )}
-                {extras.map((row) => (
-                  <div key={row.id} className="grid sm:grid-cols-[1fr_1fr_2rem] gap-3 items-start">
-                    <Select
-                      value={row.crmField}
-                      onChange={(next) => updateRow(row.id, { crmField: next, value: "" })}
-                      searchable
-                      searchPlaceholder={t("integrationsPage.fieldsSearch")}
-                      noResultsLabel={t("integrationsPage.fieldsNoResults")}
-                    >
-                      <option value="">{t("integrationsPage.extraFieldPlaceholder")}</option>
-                      {optionsFor(row.id).map((field) => (
-                        <option key={field.id} value={field.id}>
-                          {field.label}
-                          {field.custom ? ` · ${t("integrationsPage.fieldsCustom")}` : ""}
-                        </option>
-                      ))}
-                    </Select>
-                    <ValueInput
-                      // A new field means a new kind of input, so start it fresh.
-                      key={row.crmField}
-                      field={fieldById.get(row.crmField)}
-                      value={row.value}
-                      onChange={(next) => updateRow(row.id, { value: next })}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => onExtrasChange(extras.filter((item) => item.id !== row.id))}
-                      className="mt-1.5 p-2 rounded-md text-muted hover:bg-surface-hover hover:text-danger transition-colors"
-                      aria-label={t("integrationsPage.extraRemove")}
-                      title={t("integrationsPage.extraRemove")}
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => onExtrasChange([...extras, newExtraRow()])}
-                  className="flex items-center gap-1 text-sm text-primary hover:underline"
-                >
-                  <Plus className="size-3.5" />
-                  {t("integrationsPage.extraAdd")}
-                </button>
-              </div>
-            )}
-          </div>
-        </>
+              <button
+                type="button"
+                onClick={() => onExtrasChange([...extras, newExtraRow()])}
+                className="flex items-center gap-1 text-sm text-primary hover:underline"
+              >
+                <Plus className="size-3.5" />
+                {t("integrationsPage.extraAdd")}
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       <label className="flex items-center justify-between rounded-md border border-border px-4 py-3">

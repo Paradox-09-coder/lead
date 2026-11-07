@@ -112,13 +112,13 @@ export const PRICING_TIERS: PricingTier[] = [
 ];
 
 export const CAROUSEL_LOGOS = [
-  { name: "Facebook", initials: "f", color: "#1877F2" },
-  { name: "Telegram", initials: "T", color: "#26A5E4" },
-  { name: "Google Sheets", initials: "GS", color: "#0F9D58" },
+  { name: "Facebook Lead Ads", initials: "f", color: "#1877F2" },
   { name: "Bitrix24", initials: "B24", color: "#22C7A9" },
-  { name: "amoCRM / Kommo", initials: "amo", color: "#A970FF" },
-  { name: "Tilda", initials: "Ti", color: "#F5C518" },
-  { name: "Creatium", initials: "Cr", color: "#FF6B6B" },
+  { name: "amoCRM", initials: "amo", color: "#A970FF" },
+  { name: "Kommo", initials: "K", color: "#6D5BD0" },
+  { name: "Facebook Conversion API", initials: "CAPI", color: "#3B82F6" },
+  { name: "Telegram Mini App", initials: "T", color: "#26A5E4" },
+  { name: "REST API", initials: "API", color: "#14B8A6" },
 ];
 
 export interface StatTile {
@@ -149,13 +149,6 @@ export const CONNECT_PLATFORMS = [
     name: "Facebook",
     authTypeKey: "platforms.oauth",
     descriptionKey: "platforms.facebookDesc",
-    locked: false,
-  },
-  {
-    id: "google",
-    name: "Google",
-    authTypeKey: "platforms.oauth",
-    descriptionKey: "platforms.googleDesc",
     locked: false,
   },
   {

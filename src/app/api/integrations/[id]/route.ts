@@ -70,13 +70,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
     if (body.fieldMapping !== undefined) {
       const target = await Connection.findOne({ _id: integration.targetConnection, user: userId }).select(
-        "+webhookUrl",
+        "+webhookUrl +jwtToken",
       );
-      if (body.fieldMapping === null || !Array.isArray(body.fieldMapping) || target?.platform !== "bitrix24") {
+      if (body.fieldMapping === null || !Array.isArray(body.fieldMapping) || !target) {
         integration.fieldMapping = undefined;
       } else {
         try {
-          integration.fieldMapping = await normalizeFieldMapping(target.webhookUrl!, body.fieldMapping);
+          integration.fieldMapping = await normalizeFieldMapping(target, body.fieldMapping);
         } catch (error) {
           const message = error instanceof Error ? error.message : "Maydonlar tekshirilmadi";
           return NextResponse.json({ message }, { status: error instanceof FieldMappingError ? 400 : 502 });
@@ -85,7 +85,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
     if (body.sourceId !== undefined || body.hiddenFields !== undefined) {
       const target = await Connection.findOne({ _id: integration.targetConnection, user: userId }).select(
-        "+webhookUrl",
+        "+webhookUrl +jwtToken",
       );
       const isBitrix = target?.platform === "bitrix24";
       try {
@@ -94,8 +94,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         }
         if (body.hiddenFields !== undefined) {
           integration.hiddenFields =
-            isBitrix && Array.isArray(body.hiddenFields) && body.hiddenFields.length > 0
-              ? await normalizeHiddenFields(target.webhookUrl!, body.hiddenFields)
+            target && Array.isArray(body.hiddenFields) && body.hiddenFields.length > 0
+              ? await normalizeHiddenFields(target, body.hiddenFields)
               : undefined;
         }
       } catch (error) {

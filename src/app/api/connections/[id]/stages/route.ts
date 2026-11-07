@@ -5,6 +5,7 @@ import { Connection } from "@/models/Connection";
 import { getSessionUserId } from "@/lib/server-session";
 import { toErrorResponseBody } from "@/lib/api-error";
 import { fetchBitrixStagesFromFields } from "@/lib/bitrix-fields";
+import { fetchAmoStages } from "@/lib/amocrm";
 
 export const runtime = "nodejs";
 
@@ -58,24 +59,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json(stages);
     }
 
-    // amoCRM: use the main pipeline's statuses.
-    const base = connection.accountUrl!.replace(/\/$/, "");
-    const response = await fetch(`${base}/api/v4/leads/pipelines`, {
-      headers: { Authorization: `Bearer ${connection.jwtToken}` },
-    });
-    const body = await response.json();
-
-    if (!response.ok) {
-      return localizedJson({ message: body?.title ?? "Bosqichlar ro'yxati olinmadi" }, { status: 502 });
+    try {
+      return NextResponse.json(
+        await fetchAmoStages({ accountUrl: connection.accountUrl!, token: connection.jwtToken! }),
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Bosqichlar ro'yxati olinmadi";
+      return NextResponse.json({ message }, { status: 502 });
     }
-
-    const pipelines = body._embedded?.pipelines ?? [];
-    const mainPipeline = pipelines.find((p: { is_main: boolean }) => p.is_main) ?? pipelines[0];
-    const statuses = mainPipeline?._embedded?.statuses ?? [];
-    const stages = statuses
-      .sort((a: { sort: number }, b: { sort: number }) => a.sort - b.sort)
-      .map((status: { id: number; name: string }) => ({ id: String(status.id), name: status.name }));
-    return NextResponse.json(stages);
   } catch (err) {
     const { message, status } = toErrorResponseBody(err);
     return localizedJson({ message }, { status });

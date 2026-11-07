@@ -106,30 +106,29 @@ export async function POST(request: NextRequest) {
       _id: targetConnectionId,
       user: userId,
       platform: { $in: ["bitrix24", "amocrm"] },
-    }).select("+webhookUrl");
+    }).select("+webhookUrl +jwtToken");
     if (!targetConnection) {
       return localizedJson({ message: "CRM ulanishi topilmadi" }, { status: 404 });
     }
 
-    // Which Facebook question goes to which Bitrix24 field, the lead source and
-    // the fixed-value hidden fields (Bitrix24 only).
+    // Which Facebook question goes to which CRM field and the fixed-value hidden
+    // fields; Bitrix24 also has a lead source to choose.
     let normalizedMapping;
     let normalizedSourceId;
     let normalizedHiddenFields;
-    if (targetConnection.platform === "bitrix24") {
-      try {
-        const webhookUrl = targetConnection.webhookUrl!;
-        if (Array.isArray(fieldMapping) && fieldMapping.length > 0) {
-          normalizedMapping = await normalizeFieldMapping(webhookUrl, fieldMapping);
-        }
-        normalizedSourceId = await normalizeSourceId(webhookUrl, sourceId);
-        if (Array.isArray(hiddenFields) && hiddenFields.length > 0) {
-          normalizedHiddenFields = await normalizeHiddenFields(webhookUrl, hiddenFields);
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Maydonlar tekshirilmadi";
-        return NextResponse.json({ message }, { status: error instanceof FieldMappingError ? 400 : 502 });
+    try {
+      if (Array.isArray(fieldMapping) && fieldMapping.length > 0) {
+        normalizedMapping = await normalizeFieldMapping(targetConnection, fieldMapping);
       }
+      if (targetConnection.platform === "bitrix24") {
+        normalizedSourceId = await normalizeSourceId(targetConnection.webhookUrl!, sourceId);
+      }
+      if (Array.isArray(hiddenFields) && hiddenFields.length > 0) {
+        normalizedHiddenFields = await normalizeHiddenFields(targetConnection, hiddenFields);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Maydonlar tekshirilmadi";
+      return NextResponse.json({ message }, { status: error instanceof FieldMappingError ? 400 : 502 });
     }
 
     const integration = await Integration.create({

@@ -59,12 +59,12 @@ function useCrmList<T>(
 export type CrmTargetData = ReturnType<typeof useCrmTarget>;
 
 // Everything an integration needs to know about its target CRM: the stages a
-// lead can land in, and (Bitrix24 only) its lead sources and lead fields.
+// lead can land in, its lead fields, and (Bitrix24 only) its lead sources.
 export function useCrmTarget(targetId: string, isBitrix: boolean) {
   const { t } = useT();
   const stages = useCrmList<CrmStage>(targetId, true, fetchCrmStages, t("integrationsPage.stagesError"));
   const sources = useCrmList<CrmSource>(targetId, isBitrix, fetchCrmSources, t("integrationsPage.sourcesError"));
-  const fields = useCrmList<CrmField>(targetId, isBitrix, fetchCrmFields, t("integrationsPage.fieldsError"));
+  const fields = useCrmList<CrmField>(targetId, true, fetchCrmFields, t("integrationsPage.fieldsError"));
 
   return {
     stages: stages.items,
