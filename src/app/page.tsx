@@ -1,6 +1,5 @@
 import { Navbar } from "@/components/landing/Navbar";
-import { Hero } from "@/components/landing/Hero";
-import { FlowAnimation } from "@/components/landing/FlowAnimation";
+import { LeadStory } from "@/components/landing/LeadStory";
 import { LogoCarousel } from "@/components/landing/LogoCarousel";
 import { ServicesGrid } from "@/components/landing/ServicesGrid";
 import { PricingSection } from "@/components/landing/PricingSection";
@@ -11,8 +10,7 @@ export default function Home() {
     <div className="flex-1 flex flex-col">
       <Navbar />
       <main className="flex-1">
-        <Hero />
-        <FlowAnimation />
+        <LeadStory />
         <LogoCarousel />
         <ServicesGrid />
         <PricingSection />

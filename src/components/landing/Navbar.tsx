@@ -18,7 +18,7 @@ export function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
+    <header className="fixed inset-x-0 top-0 z-40 bg-gradient-to-b from-background via-background/70 to-transparent">
       <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <Logo />
