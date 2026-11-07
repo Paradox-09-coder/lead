@@ -20,7 +20,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { initData } = (await request.json().catch(() => ({}))) as { initData?: unknown };
-    const telegramUser = typeof initData === "string" ? verifyTelegramInitData(initData, botToken) : null;
+    const telegramUser =
+      typeof initData === "string"
+        ? verifyTelegramInitData(initData, botToken, undefined, undefined, (rejected) =>
+            console.warn("[telegram] Mini App sign-in refused:", JSON.stringify(rejected)),
+          )
+        : null;
     if (!telegramUser) {
       return localizedJson({ message: "Telegram ma'lumotlari yaroqsiz, ilovani qayta oching" }, { status: 401 });
     }

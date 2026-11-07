@@ -114,6 +114,7 @@ const MESSAGES: Record<string, { ru: string; en: string }> = {
     ru: "Можно создать не более {n} эндпоинтов",
     en: "You can create at most {n} endpoints",
   },
+  "Telegram botiga ulanib bo'lmadi": { ru: "Не удалось подключиться к Telegram-боту", en: "Could not reach the Telegram bot" },
   // OAuth redirect errors (?error= / ?facebook_error=)
   "Xavfsizlik tekshiruvi muvaffaqiyatsiz": { ru: "Проверка безопасности не пройдена", en: "Security check failed" },
   "Xavfsizlik tekshiruvi muvaffaqiyatsiz, qayta urinib ko'ring": {
