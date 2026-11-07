@@ -26,7 +26,7 @@ export function getTelegramBotToken(): string | null {
 export type InitDataCheck =
   | { user: TelegramUser }
   // Why the data was refused. Logged on the server, never sent to the page.
-  | { reason: "malformed" | "bad_signature" | "expired" | "bad_user"; ageSeconds?: number };
+  | { reason: "malformed" | "bad_signature" | "expired" | "bad_user"; ageSeconds?: number; fields?: string[] };
 
 // Checks the `initData` string: it must be well formed, signed with `botToken`
 // and recent. The data of a Mini App window that was opened before the bot's
@@ -45,18 +45,22 @@ export function checkTelegramInitData(
   if (!hash || !/^[0-9a-f]{64}$/i.test(hash)) return { reason: "malformed" };
   params.delete("hash");
 
-  // Every field except `hash` (the Ed25519 `signature` field included), sorted by key.
-  const dataCheckString = [...params.entries()]
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([key, value]) => `${key}=${value}`)
-    .join("\n");
+  // The data-check-string is every received field except `hash`, sorted by key.
+  // Telegram's documentation does not say whether the newer Ed25519 `signature`
+  // field belongs in it, so both are accepted: each one is an HMAC under the bot
+  // token, which nobody else has, so accepting either lets nothing forged through.
+  const sorted = [...params.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  const candidates = [sorted];
+  if (params.has("signature")) candidates.push(sorted.filter(([key]) => key !== "signature"));
 
   const secretKey = crypto.createHmac("sha256", "WebAppData").update(botToken).digest();
-  const expected = crypto.createHmac("sha256", secretKey).update(dataCheckString).digest();
   const actual = Buffer.from(hash, "hex");
-  if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) {
-    return { reason: "bad_signature" };
-  }
+  const matches = candidates.some((fields) => {
+    const dataCheckString = fields.map(([key, value]) => `${key}=${value}`).join("\n");
+    const expected = crypto.createHmac("sha256", secretKey).update(dataCheckString).digest();
+    return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+  });
+  if (!matches) return { reason: "bad_signature", fields: sorted.map(([key]) => key) };
 
   const authDate = Number(params.get("auth_date"));
   if (!Number.isFinite(authDate) || authDate <= 0) return { reason: "malformed" };
