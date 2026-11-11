@@ -7,6 +7,13 @@ export const CONVERSION_EVENT_NAMES = [
   "InitiateCheckout",
   "Contact",
   "Schedule",
+  "O'ylab ko'radi",
+  "Tashrif belgilandi",
+  "Kelmadi",
+  "Bekor bo'ldi",
+  "Tashrif buyurdi",
+  "Shartnoma",
+  "To'lov o'tkazildi",
 ] as const;
 export type ConversionEventName = (typeof CONVERSION_EVENT_NAMES)[number];
 
