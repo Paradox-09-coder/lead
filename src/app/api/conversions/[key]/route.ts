@@ -74,7 +74,8 @@ async function handle(request: NextRequest, { params }: { params: Promise<{ key:
     const parsed = parseAmount(summaRaw);
     if (parsed === null) return fail("summa musbat son bo'lishi kerak", 400);
     summa = parsed;
-  } else if (endpoint.eventName === "Purchase") {
+  } else if ((endpoint.eventName as string) === "Purchase") {
+    // Purchase is no longer offered, but endpoints saved with it still exist and Facebook needs a value.
     return fail("summa kerak (Purchase hodisasi uchun)", 400);
   }
 

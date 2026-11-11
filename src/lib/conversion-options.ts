@@ -1,12 +1,6 @@
 // What a conversion endpoint can send. Kept free of server-only imports so both
 // the database model and the dashboard (browser) can use the same lists.
 export const CONVERSION_EVENT_NAMES = [
-  "Purchase",
-  "Lead",
-  "CompleteRegistration",
-  "InitiateCheckout",
-  "Contact",
-  "Schedule",
   "O'ylab ko'radi",
   "Tashrif belgilandi",
   "Kelmadi",

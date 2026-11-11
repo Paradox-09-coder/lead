@@ -36,7 +36,7 @@ const conversionEndpointSchema = new Schema<ConversionEndpointDocument>(
     pixelId: { type: String, required: true },
     pixelName: { type: String },
     accessToken: { type: String, required: true, select: false },
-    eventName: { type: String, enum: CONVERSION_EVENT_NAMES, default: "Purchase" },
+    eventName: { type: String, enum: CONVERSION_EVENT_NAMES, default: "To'lov o'tkazildi" },
     currency: { type: String, enum: CONVERSION_CURRENCIES, default: "USD" },
     countryCode: { type: String, default: "998" },
     testEventCode: { type: String },

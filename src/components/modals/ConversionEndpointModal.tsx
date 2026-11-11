@@ -32,7 +32,10 @@ export function ConversionEndpointModal({
   const [name, setName] = useState(endpoint?.name ?? "");
   const [pixelId, setPixelId] = useState(endpoint?.pixelId ?? "");
   const [accessToken, setAccessToken] = useState("");
-  const [eventName, setEventName] = useState<EndpointInput["eventName"]>(endpoint?.eventName ?? "Purchase");
+  // An endpoint saved with a since-removed event (e.g. Purchase) falls back to the default.
+  const [eventName, setEventName] = useState<EndpointInput["eventName"]>(
+    endpoint && CONVERSION_EVENT_NAMES.includes(endpoint.eventName) ? endpoint.eventName : "To'lov o'tkazildi",
+  );
   const [currency, setCurrency] = useState<EndpointInput["currency"]>(endpoint?.currency ?? "USD");
   const [countryCode, setCountryCode] = useState(endpoint?.countryCode ?? "998");
   const [testEventCode, setTestEventCode] = useState(endpoint?.testEventCode ?? "");
