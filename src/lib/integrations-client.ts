@@ -1,3 +1,5 @@
+import type { CrmEntity } from "@/lib/crm-entity";
+
 // One Facebook form question and the CRM field its answer goes to ("" = into the comment).
 export interface FieldMappingInput {
   questionKey: string;
@@ -20,6 +22,8 @@ export interface Integration {
   facebookConnectionId: string;
   formId: string;
   stageId: string | null;
+  // What is created in Bitrix24 for each lead: a lead card or a deal.
+  entityType: CrmEntity;
   // Bitrix24 lead source (SOURCE_ID); null = the default, Facebook.
   sourceId: string | null;
   fieldMapping: FieldMappingInput[];
@@ -34,6 +38,7 @@ export interface UpdateIntegrationInput {
   status?: "active" | "paused";
   targetConnectionId?: string;
   stageId?: string | null;
+  entityType?: CrmEntity;
   sourceId?: string | null;
   duplicateCheck?: boolean;
   fieldMapping?: FieldMappingInput[] | null;
@@ -47,6 +52,7 @@ export interface CreateIntegrationInput {
   formName: string;
   targetConnectionId: string;
   stageId?: string;
+  entityType?: CrmEntity;
   sourceId?: string;
   fieldMapping?: FieldMappingInput[];
   hiddenFields?: HiddenFieldInput[];

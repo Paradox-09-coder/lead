@@ -11,6 +11,7 @@ import {
   normalizeHiddenFields,
   normalizeSourceId,
 } from "@/lib/field-mapping";
+import { parseCrmEntity } from "@/lib/crm-entity";
 
 export const runtime = "nodejs";
 
@@ -24,6 +25,7 @@ function toPublicIntegration(integration: IntegrationDocument, connectionLabels:
     facebookConnectionId: integration.facebookConnection.toString(),
     formId: integration.formId,
     stageId: integration.stageId ?? null,
+    entityType: integration.entityType ?? "lead",
     sourceId: integration.sourceId ?? null,
     fieldMapping: (integration.fieldMapping ?? []).map((entry) => ({
       questionKey: entry.questionKey,
@@ -70,6 +72,7 @@ export async function POST(request: NextRequest) {
       formName,
       targetConnectionId,
       stageId,
+      entityType,
       sourceId,
       duplicateCheck,
       fieldMapping,
@@ -81,6 +84,7 @@ export async function POST(request: NextRequest) {
       formName?: string;
       targetConnectionId?: string;
       stageId?: string;
+      entityType?: unknown;
       sourceId?: string;
       duplicateCheck?: boolean;
       fieldMapping?: unknown;
@@ -111,6 +115,9 @@ export async function POST(request: NextRequest) {
       return localizedJson({ message: "CRM ulanishi topilmadi" }, { status: 404 });
     }
 
+    // Bitrix24 can create a lead or a deal; amoCRM's only card is its "lead" (= deal).
+    const entity = targetConnection.platform === "bitrix24" ? parseCrmEntity(entityType) : "lead";
+
     // Which Facebook question goes to which CRM field and the fixed-value hidden
     // fields; Bitrix24 also has a lead source to choose.
     let normalizedMapping;
@@ -118,13 +125,13 @@ export async function POST(request: NextRequest) {
     let normalizedHiddenFields;
     try {
       if (Array.isArray(fieldMapping) && fieldMapping.length > 0) {
-        normalizedMapping = await normalizeFieldMapping(targetConnection, fieldMapping);
+        normalizedMapping = await normalizeFieldMapping(targetConnection, fieldMapping, entity);
       }
       if (targetConnection.platform === "bitrix24") {
         normalizedSourceId = await normalizeSourceId(targetConnection.webhookUrl!, sourceId);
       }
       if (Array.isArray(hiddenFields) && hiddenFields.length > 0) {
-        normalizedHiddenFields = await normalizeHiddenFields(targetConnection, hiddenFields);
+        normalizedHiddenFields = await normalizeHiddenFields(targetConnection, hiddenFields, entity);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Maydonlar tekshirilmadi";
@@ -140,6 +147,7 @@ export async function POST(request: NextRequest) {
       formName,
       targetConnection: targetConnection._id,
       stageId,
+      entityType: entity,
       sourceId: normalizedSourceId,
       fieldMapping: normalizedMapping,
       hiddenFields: normalizedHiddenFields,

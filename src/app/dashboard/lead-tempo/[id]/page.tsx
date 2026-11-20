@@ -28,7 +28,7 @@ export default async function LeadDetailPage({
     [t("leadTempo.fieldPhone"), lead.fields?.phone ?? "—"],
     [t("leadTempo.fieldEmail"), lead.fields?.email ?? "—"],
     [t("leadTempo.fieldSource"), t(leadSourceKey(lead.source))],
-    [t("leadTempo.fieldCrmId"), lead.crmLeadId ?? "—"],
+    [t(lead.crmEntity === "deal" ? "leadTempo.fieldCrmDealId" : "leadTempo.fieldCrmId"), lead.crmLeadId ?? "—"],
     [t("leadTempo.fieldRetries"), String(lead.retryCount)],
     [t("leadTempo.fieldCreated"), lead.createdAt.toLocaleString(localeTag)],
     [t("leadTempo.fieldUpdated"), lead.updatedAt.toLocaleString(localeTag)],

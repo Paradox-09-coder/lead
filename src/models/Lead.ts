@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { CRM_ENTITIES, type CrmEntity } from "@/lib/crm-entity";
 
 export type LeadStatus = "pending" | "success" | "failed" | "saved";
 
@@ -34,6 +35,8 @@ export interface LeadDocument extends mongoose.Document {
   rawFieldData?: unknown;
   status: LeadStatus;
   crmLeadId?: string;
+  // What crmLeadId is in the CRM: a lead card or a deal. Absent on leads delivered before deals existed (= lead).
+  crmEntity?: CrmEntity;
   // True when the CRM already had this lead (matched by phone/email), so
   // crmLeadId points at the existing card instead of a new one.
   crmDuplicate?: boolean;
@@ -72,6 +75,7 @@ const leadSchema = new Schema<LeadDocument>(
     rawFieldData: { type: Schema.Types.Mixed },
     status: { type: String, enum: ["pending", "success", "failed", "saved"], default: "pending" },
     crmLeadId: { type: String },
+    crmEntity: { type: String, enum: CRM_ENTITIES },
     crmDuplicate: { type: Boolean },
     errorMessage: { type: String },
     retryCount: { type: Number, default: 0 },

@@ -118,10 +118,17 @@ export default function IntegrationsPage() {
                   </button>
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-2 text-sm text-muted">
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
                 <span>{integration.source}</span>
                 <ArrowRight className="size-3.5 shrink-0" />
                 <span>{integration.target}</span>
+                {connections.find((c) => c._id === integration.targetConnectionId)?.platform === "bitrix24" && (
+                  <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-medium text-primary-strong">
+                    {integration.entityType === "deal"
+                      ? t("integrationsPage.entityBadgeDeal")
+                      : t("integrationsPage.entityBadgeLead")}
+                  </span>
+                )}
               </div>
             </div>
           ))}

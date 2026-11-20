@@ -1,3 +1,5 @@
+import type { CrmEntity } from "@/lib/crm-entity";
+
 export interface Connection {
   _id: string;
   platform: "bitrix24" | "amocrm" | "facebook" | "google";
@@ -86,8 +88,9 @@ export interface CrmStage {
   name: string;
 }
 
-export async function fetchCrmStages(connectionId: string): Promise<CrmStage[]> {
-  const response = await fetch(`/api/connections/${connectionId}/stages`);
+// `entity` "deal" (Bitrix24) lists the stages of the deal pipelines instead of the lead statuses.
+export async function fetchCrmStages(connectionId: string, entity: CrmEntity = "lead"): Promise<CrmStage[]> {
+  const response = await fetch(`/api/connections/${connectionId}/stages?entity=${entity}`);
   if (!response.ok) {
     throw new Error(await parseErrorMessage(response, "Bosqichlar ro'yxati olinmadi"));
   }
@@ -119,8 +122,9 @@ export interface CrmField {
   items?: { id: string; value: string }[]; // list options
 }
 
-export async function fetchCrmFields(connectionId: string): Promise<CrmField[]> {
-  const response = await fetch(`/api/connections/${connectionId}/fields`);
+// `entity` "deal" (Bitrix24) lists the deal's fields and its contact's (ids "CONTACT.NAME" …).
+export async function fetchCrmFields(connectionId: string, entity: CrmEntity = "lead"): Promise<CrmField[]> {
+  const response = await fetch(`/api/connections/${connectionId}/fields?entity=${entity}`);
   if (!response.ok) {
     throw new Error(await parseErrorMessage(response, "Maydonlar ro'yxati olinmadi"));
   }
@@ -136,12 +140,16 @@ export interface NewCrmFieldInput {
   options: string[];
 }
 
-// Creates a new custom lead field in the CRM and returns it.
-export async function createCrmField(connectionId: string, input: NewCrmFieldInput): Promise<CrmField> {
+// Creates a new custom lead (or, with `entity` "deal", deal) field in the CRM and returns it.
+export async function createCrmField(
+  connectionId: string,
+  input: NewCrmFieldInput,
+  entity: CrmEntity = "lead",
+): Promise<CrmField> {
   const response = await fetch(`/api/connections/${connectionId}/fields`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, entity }),
   });
   if (!response.ok) {
     throw new Error(await parseErrorMessage(response, "Maydon yaratilmadi"));

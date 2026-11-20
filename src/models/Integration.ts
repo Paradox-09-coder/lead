@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { CRM_ENTITIES, type CrmEntity } from "@/lib/crm-entity";
 
 // One Facebook form question and the CRM field its answer is written to.
 // An empty `crmField` means "no field": the answer goes into the lead's comment.
@@ -34,6 +35,9 @@ export interface IntegrationDocument extends mongoose.Document {
   formName: string;
   targetConnection: mongoose.Types.ObjectId;
   stageId?: string;
+  // What is created in Bitrix24 for every lead: a lead card or a deal. Integrations
+  // saved before deals were supported have none, which means "lead".
+  entityType: CrmEntity;
   // Bitrix24 lead source (SOURCE_ID). Absent = the default, "FACEBOOK".
   sourceId?: string;
   // Absent on integrations created before field mapping existed: those send
@@ -109,6 +113,11 @@ const integrationSchema = new Schema<IntegrationDocument>(
     },
     stageId: {
       type: String,
+    },
+    entityType: {
+      type: String,
+      enum: CRM_ENTITIES,
+      default: "lead",
     },
     sourceId: {
       type: String,

@@ -5,6 +5,7 @@ import { Select } from "@/components/ui/Select";
 import type { CrmField } from "@/lib/connections-client";
 import type { HiddenFieldInput } from "@/lib/integrations-client";
 import type { CrmTargetData } from "@/components/modals/useCrmTarget";
+import type { CrmEntity } from "@/lib/crm-entity";
 import { useT } from "@/i18n/client";
 
 // One "extra field" row being edited. `id` only keys the row in the list.
@@ -104,6 +105,7 @@ function ValueInput({
 export function HiddenFieldsEditor({
   targetId,
   isBitrixTarget,
+  entity,
   crm,
   stageId,
   onStageChange,
@@ -116,6 +118,8 @@ export function HiddenFieldsEditor({
 }: {
   targetId: string;
   isBitrixTarget: boolean;
+  // What the integration creates; a deal lands in a pipeline stage rather than a lead status.
+  entity: CrmEntity;
   crm: CrmTargetData;
   stageId: string;
   onStageChange: (id: string) => void;
@@ -128,6 +132,7 @@ export function HiddenFieldsEditor({
 }) {
   const { t } = useT();
   const fieldById = new Map(crm.crmFields.map((field) => [field.id, field]));
+  const isDeal = isBitrixTarget && entity === "deal";
 
   function updateRow(id: number, patch: Partial<ExtraFieldRow>) {
     onExtrasChange(extras.map((row) => (row.id === id ? { ...row, ...patch } : row)));
@@ -148,12 +153,18 @@ export function HiddenFieldsEditor({
       {!targetId && <p className="text-sm text-warning">{t("integrationsPage.hiddenSelectTarget")}</p>}
 
       <div>
-        <label className="block text-sm font-medium">{t("integrationsPage.stageWhereLabel")}</label>
+        <label className="block text-sm font-medium">
+          {isDeal ? t("integrationsPage.stageWhereDeal") : t("integrationsPage.stageWhereLabel")}
+        </label>
         <Select
           value={stageId}
           onChange={onStageChange}
           disabled={!targetId || crm.isLoadingStages}
           allowEmpty
+          // A portal can have many deal pipelines, each with a dozen stages.
+          searchable={isDeal}
+          searchPlaceholder={t("integrationsPage.fieldsSearch")}
+          noResultsLabel={t("integrationsPage.fieldsNoResults")}
         >
           <option value="" className="bg-surface-solid">
             {!targetId
@@ -178,6 +189,7 @@ export function HiddenFieldsEditor({
         {!crm.isLoadingStages && !crm.stagesError && targetId && crm.stages.length === 0 && (
           <p className="mt-1.5 text-xs text-muted">{t("integrationsPage.stagesEmpty")}</p>
         )}
+        {isDeal && !crm.stagesError && <p className="mt-1.5 text-xs text-muted">{t("integrationsPage.stageDealHint")}</p>}
       </div>
 
       {isBitrixTarget && (

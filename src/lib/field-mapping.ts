@@ -1,5 +1,6 @@
 import type { FieldMappingEntry, HiddenFieldEntry } from "@/models/Integration";
-import { fetchBitrixLeadFields, fetchBitrixSources, type CrmFieldDef } from "@/lib/bitrix-fields";
+import { fetchBitrixFields, fetchBitrixSources, type CrmFieldDef } from "@/lib/bitrix-fields";
+import { contactFieldName, type CrmEntity } from "@/lib/crm-entity";
 import { fetchAmoLeadFields, type AmoFieldLabels } from "@/lib/amocrm";
 import type { ConnectionDocument } from "@/models/Connection";
 
@@ -18,21 +19,30 @@ const MAX_ENTRIES = 100;
 
 export class FieldMappingError extends Error {}
 
-// The lead fields of a connected CRM. The connection must be loaded with
-// +webhookUrl (Bitrix24) or +jwtToken (amoCRM).
-export function loadCrmFields(connection: ConnectionDocument, labels?: AmoFieldLabels): Promise<CrmFieldDef[]> {
+// The fields of a connected CRM that an answer can be written to: lead fields, or (Bitrix24 `entity` "deal") deal
+// fields plus its contact's. amoCRM's "lead" is its deal, so `entity` does not change anything there. The
+// connection must be loaded with +webhookUrl (Bitrix24) or +jwtToken (amoCRM).
+export function loadCrmFields(
+  connection: ConnectionDocument,
+  labels?: AmoFieldLabels,
+  entity: CrmEntity = "lead",
+): Promise<CrmFieldDef[]> {
   if (connection.platform === "amocrm") {
     return fetchAmoLeadFields({ accountUrl: connection.accountUrl!, token: connection.jwtToken! }, labels);
   }
-  return fetchBitrixLeadFields(connection.webhookUrl!);
+  return fetchBitrixFields(connection.webhookUrl!, entity, labels?.contactSuffix);
 }
 
 // Validates a mapping sent by the dashboard against the CRM's real field list
 // and fills in each field's type/options. Throws FieldMappingError when a
 // chosen field does not exist (e.g. it was deleted in the CRM meanwhile).
-export async function normalizeFieldMapping(connection: ConnectionDocument, input: unknown): Promise<FieldMappingEntry[]> {
+export async function normalizeFieldMapping(
+  connection: ConnectionDocument,
+  input: unknown,
+  entity: CrmEntity = "lead",
+): Promise<FieldMappingEntry[]> {
   if (!Array.isArray(input)) throw new FieldMappingError("Maydonlar moslamasi noto'g'ri");
-  const defs = new Map((await loadCrmFields(connection)).map((def) => [def.id, def]));
+  const defs = new Map((await loadCrmFields(connection, undefined, entity)).map((def) => [def.id, def]));
 
   const seen = new Set<string>();
   const entries: FieldMappingEntry[] = [];
@@ -85,9 +95,13 @@ const MAX_HIDDEN_VALUE = 500;
 // field list and fills in each field's type/options. A row without a field or
 // without a value is dropped. Throws FieldMappingError for a field the CRM does
 // not have, or a list value that is not one of the field's options.
-export async function normalizeHiddenFields(connection: ConnectionDocument, input: unknown): Promise<HiddenFieldEntry[]> {
+export async function normalizeHiddenFields(
+  connection: ConnectionDocument,
+  input: unknown,
+  entity: CrmEntity = "lead",
+): Promise<HiddenFieldEntry[]> {
   if (!Array.isArray(input)) throw new FieldMappingError("Yashirin maydonlar noto'g'ri");
-  const defs = new Map((await loadCrmFields(connection)).map((def) => [def.id, def]));
+  const defs = new Map((await loadCrmFields(connection, undefined, entity)).map((def) => [def.id, def]));
 
   const seen = new Set<string>();
   const entries: HiddenFieldEntry[] = [];
@@ -124,7 +138,7 @@ export async function normalizeHiddenFields(connection: ConnectionDocument, inpu
 const TRUE_WORDS = new Set(["true", "yes", "y", "1", "ha", "да", "on"]);
 
 function multifieldType(field: string): string {
-  return field === "IM" ? "OTHER" : "WORK";
+  return contactFieldName(field) === "IM" ? "OTHER" : "WORK";
 }
 
 export interface MappedLeadFields {

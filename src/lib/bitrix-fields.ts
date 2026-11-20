@@ -1,5 +1,7 @@
-// Bitrix24 lead fields (standard + custom UF_CRM_*) as returned by
-// crm.lead.fields, trimmed to the ones a Facebook form answer can be written to.
+// Bitrix24 lead / deal fields (standard + custom UF_CRM_*) as returned by
+// crm.lead.fields and crm.deal.fields, trimmed to the ones a Facebook form answer can be written to.
+
+import { CONTACT_FIELD_PREFIX, type CrmEntity } from "@/lib/crm-entity";
 
 export interface CrmFieldItem {
   id: string;
@@ -42,7 +44,24 @@ const WRITABLE_TYPES = new Set([
 ]);
 
 // Fields LeadSync fills itself (or that must not be set from a form answer).
-const RESERVED_IDS = new Set(["TITLE", "STATUS_ID", "SOURCE_ID", "SOURCE_DESCRIPTION"]);
+const RESERVED_IDS: Record<CrmEntity, Set<string>> = {
+  lead: new Set(["TITLE", "STATUS_ID", "SOURCE_ID", "SOURCE_DESCRIPTION"]),
+  deal: new Set([
+    "TITLE",
+    "STAGE_ID",
+    "CATEGORY_ID",
+    "SOURCE_ID",
+    "SOURCE_DESCRIPTION",
+    "CONTACT_ID",
+    "CONTACT_IDS",
+    "COMPANY_ID",
+    "LEAD_ID",
+    "QUOTE_ID",
+  ]),
+};
+
+// The contact a deal is attached to. Its source is the deal's, and company / lead links are not answers.
+const CONTACT_RESERVED_IDS = new Set(["SOURCE_ID", "SOURCE_DESCRIPTION", "COMPANY_ID", "COMPANY_IDS", "LEAD_ID"]);
 
 export function bitrixMethodUrl(webhookUrl: string, method: string): URL {
   return new URL(method, webhookUrl.endsWith("/") ? webhookUrl : `${webhookUrl}/`);
@@ -74,13 +93,41 @@ function toDef(id: string, raw: RawField): CrmFieldDef {
   };
 }
 
+function writableDefs(result: Record<string, RawField> | undefined, reserved: Set<string>): CrmFieldDef[] {
+  return Object.entries(result ?? {})
+    .filter(([id, raw]) => !raw.isReadOnly && !reserved.has(id) && WRITABLE_TYPES.has(raw.type ?? "string"))
+    .map(([id, raw]) => toDef(id, raw));
+}
+
+function sortDefs(defs: CrmFieldDef[]): CrmFieldDef[] {
+  return defs.sort((a, b) => Number(a.custom) - Number(b.custom) || a.label.localeCompare(b.label));
+}
+
 // Every lead field an answer can be written to, standard ones first.
 export async function fetchBitrixLeadFields(webhookUrl: string): Promise<CrmFieldDef[]> {
   const result = await callBitrix<Record<string, RawField>>(webhookUrl, "crm.lead.fields");
-  const defs = Object.entries(result ?? {})
-    .filter(([id, raw]) => !raw.isReadOnly && !RESERVED_IDS.has(id) && WRITABLE_TYPES.has(raw.type ?? "string"))
-    .map(([id, raw]) => toDef(id, raw));
-  return defs.sort((a, b) => Number(a.custom) - Number(b.custom) || a.label.localeCompare(b.label));
+  return sortDefs(writableDefs(result, RESERVED_IDS.lead));
+}
+
+// Every deal field an answer can be written to, plus the fields of the contact the deal is attached to (a deal
+// has no name / phone / email of its own). Contact fields come with the CONTACT_FIELD_PREFIX on their id and
+// `contactSuffix` after their label so the two kinds can be told apart.
+export async function fetchBitrixDealFields(webhookUrl: string, contactSuffix: string): Promise<CrmFieldDef[]> {
+  const [dealResult, contactResult] = await Promise.all([
+    callBitrix<Record<string, RawField>>(webhookUrl, "crm.deal.fields"),
+    callBitrix<Record<string, RawField>>(webhookUrl, "crm.contact.fields"),
+  ]);
+  const contactDefs = writableDefs(contactResult, CONTACT_RESERVED_IDS).map((def) => ({
+    ...def,
+    id: `${CONTACT_FIELD_PREFIX}${def.id}`,
+    label: `${def.label} (${contactSuffix})`,
+    required: false,
+  }));
+  return sortDefs([...writableDefs(dealResult, RESERVED_IDS.deal), ...contactDefs]);
+}
+
+export function fetchBitrixFields(webhookUrl: string, entity: CrmEntity, contactSuffix = "contact"): Promise<CrmFieldDef[]> {
+  return entity === "deal" ? fetchBitrixDealFields(webhookUrl, contactSuffix) : fetchBitrixLeadFields(webhookUrl);
 }
 
 // Stage list straight from crm.lead.fields' STATUS_ID options. Used when
@@ -88,6 +135,69 @@ export async function fetchBitrixLeadFields(webhookUrl: string): Promise<CrmFiel
 export async function fetchBitrixStagesFromFields(webhookUrl: string): Promise<Array<{ id: string; name: string }>> {
   const result = await callBitrix<Record<string, RawField>>(webhookUrl, "crm.lead.fields");
   return (result?.STATUS_ID?.items ?? []).map((item) => ({ id: String(item.ID), name: item.VALUE }));
+}
+
+interface DealCategory {
+  id: number;
+  name: string;
+}
+
+// The deal pipelines ("voronka") of the portal, the default one first. crm.category.list is the current API;
+// the older crm.dealcategory.* pair is the fallback for portals that refuse it.
+async function fetchDealCategories(webhookUrl: string): Promise<DealCategory[]> {
+  try {
+    const result = await callBitrix<{ categories?: Array<{ id: number | string; name: string; sort?: number }> }>(
+      webhookUrl,
+      "crm.category.list",
+      { entityTypeId: "2" },
+    );
+    const categories = (result?.categories ?? [])
+      .slice()
+      .sort((a, b) => Number(a.sort ?? 0) - Number(b.sort ?? 0))
+      .map((category) => ({ id: Number(category.id), name: category.name }));
+    if (categories.length > 0) return categories;
+  } catch {
+    // Fall through to the older methods.
+  }
+  const custom = await callBitrix<Array<{ ID: string | number; NAME: string }>>(webhookUrl, "crm.dealcategory.list").catch(
+    () => [],
+  );
+  const fallbackDefault = await callBitrix<{ NAME?: string }>(webhookUrl, "crm.dealcategory.default.get").catch(() => null);
+  return [
+    { id: 0, name: fallbackDefault?.NAME ?? "" },
+    ...(custom ?? []).map((category) => ({ id: Number(category.ID), name: category.NAME })),
+  ];
+}
+
+// Every stage of every deal pipeline, ids as Bitrix24 expects them in STAGE_ID ("NEW", "C3:NEW"). With more than
+// one pipeline each stage is named "Pipeline › Stage" so the dropdown stays unambiguous.
+export async function fetchBitrixDealStages(webhookUrl: string): Promise<Array<{ id: string; name: string }>> {
+  const categories = await fetchDealCategories(webhookUrl);
+  const lists = await Promise.all(
+    categories.map(async (category) => {
+      const entityId = category.id === 0 ? "DEAL_STAGE" : `DEAL_STAGE_${category.id}`;
+      const result = await callBitrix<Array<{ STATUS_ID: string; NAME: string; SORT?: string }>>(
+        webhookUrl,
+        "crm.status.list",
+        { "filter[ENTITY_ID]": entityId },
+      );
+      return (result ?? [])
+        .slice()
+        .sort((a, b) => Number(a.SORT) - Number(b.SORT))
+        .map((stage) => ({
+          id: String(stage.STATUS_ID),
+          name: categories.length > 1 && category.name ? `${category.name} › ${stage.NAME}` : stage.NAME,
+        }));
+    }),
+  );
+  return lists.flat();
+}
+
+// Stage list straight from crm.deal.fields' STAGE_ID options (default pipeline only). Used when crm.status.list
+// is refused.
+export async function fetchBitrixDealStagesFromFields(webhookUrl: string): Promise<Array<{ id: string; name: string }>> {
+  const result = await callBitrix<Record<string, RawField>>(webhookUrl, "crm.deal.fields");
+  return (result?.STAGE_ID?.items ?? []).map((item) => ({ id: String(item.ID), name: item.VALUE }));
 }
 
 // Lead sources (the SOURCE_ID dropdown: Facebook, Web, Call, custom ones …).
@@ -137,16 +247,21 @@ export interface NewFieldInput {
 // the portal's own language, so the same text is saved for each of them.
 const LABEL_LANGUAGES = ["en", "ru", "ua", "kz", "de", "tr", "pl"];
 
-// Creates a custom lead field (crm.lead.userfield.add) and returns it as the
+// Creates a custom lead or deal field (crm.lead.userfield.add / crm.deal.userfield.add) and returns it as the
 // CRM now lists it. Needs a webhook whose owner may edit CRM settings.
-export async function createBitrixLeadField(webhookUrl: string, input: NewFieldInput): Promise<CrmFieldDef> {
+export async function createBitrixField(
+  webhookUrl: string,
+  input: NewFieldInput,
+  entity: CrmEntity = "lead",
+  contactSuffix = "contact",
+): Promise<CrmFieldDef> {
   // Bitrix24 prefixes the name with UF_CRM_. Names are generated, not derived
   // from the label, so any language works and two fields never collide.
   const name = `LS${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`.toUpperCase();
   const label = Object.fromEntries(LABEL_LANGUAGES.map((lang) => [lang, input.label]));
   const isList = input.type === "enumeration";
 
-  const response = await fetch(bitrixMethodUrl(webhookUrl, "crm.lead.userfield.add"), {
+  const response = await fetch(bitrixMethodUrl(webhookUrl, `crm.${entity}.userfield.add`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -173,7 +288,7 @@ export async function createBitrixLeadField(webhookUrl: string, input: NewFieldI
   }
 
   const fieldId = `UF_CRM_${name}`;
-  const created = (await fetchBitrixLeadFields(webhookUrl)).find((def) => def.id === fieldId);
+  const created = (await fetchBitrixFields(webhookUrl, entity, contactSuffix)).find((def) => def.id === fieldId);
   if (!created) throw new Error("Maydon yaratildi, lekin ro'yxatda ko'rinmadi");
   return created;
 }

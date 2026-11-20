@@ -11,6 +11,7 @@ import {
   normalizeHiddenFields,
   normalizeSourceId,
 } from "@/lib/field-mapping";
+import { parseCrmEntity } from "@/lib/crm-entity";
 
 export const runtime = "nodejs";
 
@@ -29,6 +30,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       status?: string;
       targetConnectionId?: string;
       stageId?: string | null;
+      entityType?: unknown;
       sourceId?: string | null;
       duplicateCheck?: boolean;
       fieldMapping?: unknown;
@@ -67,6 +69,25 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         integration.hiddenFields = undefined;
       }
       integration.targetConnection = target._id;
+      // Only Bitrix24 has deals; another CRM's card is always its "lead".
+      if (target.platform !== "bitrix24") integration.entityType = "lead";
+    }
+    if (body.entityType !== undefined) {
+      const entity = parseCrmEntity(body.entityType);
+      if (entity === "deal") {
+        const current = await Connection.findOne({ _id: integration.targetConnection, user: userId }).select("platform");
+        if (current?.platform !== "bitrix24") {
+          return localizedJson({ message: "Sdelka faqat Bitrix24 uchun" }, { status: 400 });
+        }
+      }
+      // A stage, a field mapping and hidden fields all name things of one kind of card (a lead has statuses and
+      // PHONE, a deal has pipeline stages and a contact), so they cannot follow a switch between the two.
+      if (entity !== (integration.entityType ?? "lead")) {
+        integration.entityType = entity;
+        integration.stageId = undefined;
+        integration.fieldMapping = undefined;
+        integration.hiddenFields = undefined;
+      }
     }
     if (body.fieldMapping !== undefined) {
       const target = await Connection.findOne({ _id: integration.targetConnection, user: userId }).select(
@@ -76,7 +97,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         integration.fieldMapping = undefined;
       } else {
         try {
-          integration.fieldMapping = await normalizeFieldMapping(target, body.fieldMapping);
+          integration.fieldMapping = await normalizeFieldMapping(target, body.fieldMapping, integration.entityType);
         } catch (error) {
           const message = error instanceof Error ? error.message : "Maydonlar tekshirilmadi";
           return NextResponse.json({ message }, { status: error instanceof FieldMappingError ? 400 : 502 });
@@ -95,7 +116,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         if (body.hiddenFields !== undefined) {
           integration.hiddenFields =
             target && Array.isArray(body.hiddenFields) && body.hiddenFields.length > 0
-              ? await normalizeHiddenFields(target, body.hiddenFields)
+              ? await normalizeHiddenFields(target, body.hiddenFields, integration.entityType)
               : undefined;
         }
       } catch (error) {

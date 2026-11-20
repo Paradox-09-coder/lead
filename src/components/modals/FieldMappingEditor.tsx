@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Select } from "@/components/ui/Select";
 import type { CrmField, FacebookQuestion, NewCrmFieldInput, NewCrmFieldType } from "@/lib/connections-client";
+import { CONTACT_FIELD_PREFIX } from "@/lib/crm-entity";
 import { useT } from "@/i18n/client";
 
 // Facebook's built-in question keys and the Bitrix24 field they usually belong in.
@@ -31,6 +32,8 @@ const KEY_TO_FIELD: Record<string, string> = {
 // matching standard field, and a custom question whose text is the same as a
 // Bitrix24 field's name goes to that field. Anything else stays unmapped (its
 // answer then goes into the lead's comment). The user can change all of it.
+// In a deal integration the person's fields live on the contact ("CONTACT.PHONE"), so a standard field the deal
+// itself does not have is looked up there.
 export function suggestMapping(questions: FacebookQuestion[], crmFields: CrmField[]): Record<string, string> {
   const byId = new Map(crmFields.map((field) => [field.id, field]));
   const byLabel = new Map(crmFields.map((field) => [field.label.trim().toLowerCase(), field]));
@@ -40,7 +43,8 @@ export function suggestMapping(questions: FacebookQuestion[], crmFields: CrmFiel
   for (const question of questions) {
     const standard = KEY_TO_FIELD[question.key.toLowerCase()];
     const candidate =
-      (standard ? byId.get(standard) : undefined) ?? byLabel.get(question.label.trim().toLowerCase());
+      (standard ? (byId.get(standard) ?? byId.get(`${CONTACT_FIELD_PREFIX}${standard}`)) : undefined) ??
+      byLabel.get(question.label.trim().toLowerCase());
     // Two questions on one single-value field (full_name and first_name) would garble it.
     if (candidate && (candidate.type === "crm_multifield" || !used.has(candidate.id))) {
       result[question.key] = candidate.id;

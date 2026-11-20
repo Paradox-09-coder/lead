@@ -16,7 +16,9 @@ import {
   IntegrationSubView,
   type IntegrationView,
 } from "@/components/modals/IntegrationSections";
+import { EntityTypePicker } from "@/components/modals/EntityTypePicker";
 import { useCrmTarget } from "@/components/modals/useCrmTarget";
+import type { CrmEntity } from "@/lib/crm-entity";
 import { CONNECT_PLATFORMS } from "@/lib/mock-data";
 import {
   createCrmField,
@@ -56,6 +58,7 @@ export function EditIntegrationModal({
   const [target, setTarget] = useState(
     crmConnections.some((c) => c._id === integration.targetConnectionId) ? integration.targetConnectionId : "",
   );
+  const [entity, setEntity] = useState<CrmEntity>(integration.entityType ?? "lead");
   const [stageId, setStageId] = useState(integration.stageId ?? "");
   const [sourceId, setSourceId] = useState(integration.sourceId ?? "");
   const [extras, setExtras] = useState<ExtraFieldRow[]>(() => rowsFromSaved(integration.hiddenFields ?? []));
@@ -68,7 +71,9 @@ export function EditIntegrationModal({
 
   const targetConnection = crmConnections.find((c) => c._id === target);
   const isBitrixTarget = targetConnection?.platform === "bitrix24";
-  const crm = useCrmTarget(target, isBitrixTarget);
+  // amoCRM has one kind of card, whatever an older save says.
+  const effectiveEntity: CrmEntity = isBitrixTarget ? entity : "lead";
+  const crm = useCrmTarget(target, isBitrixTarget, entity);
 
   // The form's questions: from Facebook, or (if that fails) from the saved mapping.
   useEffect(() => {
@@ -87,17 +92,26 @@ export function EditIntegrationModal({
   }, [formQuestions, integration.fieldMapping]);
 
   const mapping = useMemo(() => {
-    // A saved mapping names fields of the CRM it was saved for.
+    // A saved mapping names fields of the CRM (and kind of card) it was saved for.
     const saved =
-      target === integration.targetConnectionId
+      target === integration.targetConnectionId && effectiveEntity === (integration.entityType ?? "lead")
         ? Object.fromEntries(integration.fieldMapping.map((e) => [e.questionKey, e.crmField]))
         : {};
     return { ...suggestMapping(questions, crm.crmFields), ...saved, ...mappingOverrides };
-  }, [questions, crm.crmFields, target, integration.targetConnectionId, integration.fieldMapping, mappingOverrides]);
+  }, [
+    questions,
+    crm.crmFields,
+    target,
+    effectiveEntity,
+    integration.targetConnectionId,
+    integration.entityType,
+    integration.fieldMapping,
+    mappingOverrides,
+  ]);
 
   // Creates a new field in the CRM and adds it to the list the questions pick from.
   async function handleCreateField(input: NewCrmFieldInput): Promise<CrmField> {
-    const field = await createCrmField(target, input);
+    const field = await createCrmField(target, input, effectiveEntity);
     crm.addCrmField(field);
     return field;
   }
@@ -105,8 +119,19 @@ export function EditIntegrationModal({
   // The stage, source, hidden fields and mapping all belong to one CRM.
   function handleTargetChange(id: string) {
     setTarget(id);
+    setEntity("lead");
     setStageId("");
     setSourceId("");
+    setExtras([]);
+    setMappingOverrides({});
+  }
+
+  // A lead has statuses and PHONE, a deal has pipeline stages and a contact: what was picked for one does not
+  // carry over to the other.
+  function handleEntityChange(next: CrmEntity) {
+    if (next === entity) return;
+    setEntity(next);
+    setStageId("");
     setExtras([]);
     setMappingOverrides({});
   }
@@ -128,6 +153,8 @@ export function EditIntegrationModal({
         name,
         targetConnectionId: target,
         stageId: stageId || null,
+        // Sent whenever the CRM is Bitrix24, so an old integration is saved as an explicit "lead" or "deal".
+        ...(isBitrixTarget ? { entityType: entity } : {}),
         duplicateCheck,
         // Source and hidden fields are sent only when changed (or the CRM changed,
         // which clears them server-side), so an unreachable CRM cannot block an unrelated edit.
@@ -190,6 +217,15 @@ export function EditIntegrationModal({
             </Select>
           </div>
 
+          {isBitrixTarget && (
+            <div>
+              <EntityTypePicker value={entity} onChange={handleEntityChange} />
+              {entity !== (integration.entityType ?? "lead") && target === integration.targetConnectionId && (
+                <p className="mt-2 text-xs text-warning">{t("integrationsPage.entityChangeNote")}</p>
+              )}
+            </div>
+          )}
+
           <IntegrationSectionButtons
             disabled={!target}
             fieldsSummary={
@@ -249,6 +285,7 @@ export function EditIntegrationModal({
           <HiddenFieldsEditor
             targetId={target}
             isBitrixTarget={isBitrixTarget}
+            entity={effectiveEntity}
             crm={crm}
             stageId={stageId}
             onStageChange={setStageId}

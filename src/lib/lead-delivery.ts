@@ -8,6 +8,7 @@ import {
 import { Lead, type LeadDocument } from "@/models/Lead";
 import { pushLeadToCrm, type CrmLeadMeta, type LeadFields } from "@/lib/crm-push";
 import { FACEBOOK_GRAPH_VERSION } from "@/lib/facebook-oauth";
+import type { CrmEntity } from "@/lib/crm-entity";
 
 export interface FacebookFieldDatum {
   name: string;
@@ -42,6 +43,8 @@ const UTM_KEYS = ["source", "medium", "campaign", "content", "term"] as const;
 
 // What an integration decides about the lead it delivers, besides where it goes.
 export interface IntegrationDeliveryOptions {
+  // Bitrix24: create a deal (with a contact) instead of a lead card. Lead when absent.
+  entity?: CrmEntity;
   fieldMapping?: FieldMappingEntry[];
   // Bitrix24 lead source (SOURCE_ID); Facebook's own source when absent.
   sourceId?: string;
@@ -51,6 +54,7 @@ export interface IntegrationDeliveryOptions {
 // The delivery settings stored on an integration.
 export function integrationDeliveryOptions(integration: IntegrationDocument): IntegrationDeliveryOptions {
   return {
+    entity: integration.entityType,
     fieldMapping: integration.fieldMapping,
     sourceId: integration.sourceId,
     hiddenFields: integration.hiddenFields,
@@ -79,6 +83,7 @@ function crmLeadMeta(lead: LeadDocument, options: IntegrationDeliveryOptions): C
   }
   return {
     title: name ? `Facebook lead — ${name}` : "Facebook lead",
+    entity: options.entity,
     sourceId: options.sourceId || "FACEBOOK",
     sourceDescription: lead.formName ? `LeadSync Facebook forma: ${lead.formName}` : undefined,
     // UTM tags are always filled in, never asked for.
@@ -107,6 +112,7 @@ export async function deliverLeadToCrm(
     if (!connection) throw new Error("CRM ulanishi topilmadi (o'chirilgan bo'lishi mumkin)");
     const result = await pushLeadToCrm(connection, lead.fields, lead.stageId, crmLeadMeta(lead, options), options);
     lead.crmLeadId = result.id;
+    lead.crmEntity = result.entity;
     lead.crmDuplicate = result.duplicate || undefined;
     lead.status = "success";
     lead.errorMessage = undefined;

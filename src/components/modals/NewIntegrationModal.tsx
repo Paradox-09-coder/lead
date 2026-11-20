@@ -12,7 +12,9 @@ import {
   IntegrationSubView,
   type IntegrationView,
 } from "@/components/modals/IntegrationSections";
+import { EntityTypePicker } from "@/components/modals/EntityTypePicker";
 import { useCrmTarget } from "@/components/modals/useCrmTarget";
+import type { CrmEntity } from "@/lib/crm-entity";
 import { CONNECT_PLATFORMS } from "@/lib/mock-data";
 import {
   fetchFacebookForms,
@@ -48,6 +50,8 @@ export function NewIntegrationModal({
   const [formsError, setFormsError] = useState<string | null>(null);
   const [formId, setFormId] = useState("");
   const [target, setTarget] = useState("");
+  // Bitrix24 only: create a lead card or a deal. amoCRM has just one kind of card.
+  const [entity, setEntity] = useState<CrmEntity>("lead");
   const [stageId, setStageId] = useState("");
   const [sourceId, setSourceId] = useState("");
   const [extras, setExtras] = useState<ExtraFieldRow[]>([]);
@@ -62,7 +66,7 @@ export function NewIntegrationModal({
   const crmConnections = connections.filter((c) => c.platform === "bitrix24" || c.platform === "amocrm");
   const targetConnection = crmConnections.find((c) => c._id === target);
   const isBitrixTarget = targetConnection?.platform === "bitrix24";
-  const crm = useCrmTarget(target, isBitrixTarget);
+  const crm = useCrmTarget(target, isBitrixTarget, entity);
 
   const questions = useMemo(() => forms.find((f) => f.id === formId)?.questions ?? [], [forms, formId]);
   const mapping = useMemo(
@@ -101,7 +105,7 @@ export function NewIntegrationModal({
 
   // Creates a new field in the CRM and adds it to the list the questions pick from.
   async function handleCreateField(input: NewCrmFieldInput): Promise<CrmField> {
-    const field = await createCrmField(target, input);
+    const field = await createCrmField(target, input, isBitrixTarget ? entity : "lead");
     crm.addCrmField(field);
     return field;
   }
@@ -109,8 +113,19 @@ export function NewIntegrationModal({
   // The stage, source, hidden fields and mapping all belong to one CRM.
   function handleTargetChange(id: string) {
     setTarget(id);
+    setEntity("lead");
     setStageId("");
     setSourceId("");
+    setExtras([]);
+    setMappingOverrides({});
+  }
+
+  // A lead has statuses and PHONE, a deal has pipeline stages and a contact: what was picked for one does not
+  // carry over to the other.
+  function handleEntityChange(next: CrmEntity) {
+    if (next === entity) return;
+    setEntity(next);
+    setStageId("");
     setExtras([]);
     setMappingOverrides({});
   }
@@ -148,6 +163,7 @@ export function NewIntegrationModal({
         formName: selectedForm?.name ?? formId,
         targetConnectionId: targetConnection._id,
         stageId: stageId || undefined,
+        entityType: isBitrixTarget ? entity : undefined,
         sourceId: isBitrixTarget && sourceId ? sourceId : undefined,
         hiddenFields: extraInputs.length > 0 ? extraInputs : undefined,
         // Only sent when the CRM's fields loaded; otherwise name/phone/email go as before.
@@ -270,6 +286,8 @@ export function NewIntegrationModal({
             )}
           </div>
 
+          {isBitrixTarget && <EntityTypePicker value={entity} onChange={handleEntityChange} />}
+
           <IntegrationSectionButtons
             disabled={!target}
             fieldsSummary={
@@ -340,6 +358,7 @@ export function NewIntegrationModal({
           <HiddenFieldsEditor
             targetId={target}
             isBitrixTarget={isBitrixTarget}
+            entity={entity}
             crm={crm}
             stageId={stageId}
             onStageChange={setStageId}

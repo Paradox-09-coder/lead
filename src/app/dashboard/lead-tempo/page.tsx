@@ -118,6 +118,9 @@ export default async function LeadTempoPage({
                       </td>
                       <td className="num">
                         {lead.crmLeadId ?? "—"}
+                        {lead.crmLeadId && lead.crmEntity === "deal" && (
+                          <p className="text-xs text-ink-3">{t("leadTempo.dealTag")}</p>
+                        )}
                         {lead.crmDuplicate && <p className="text-xs text-ink-3">{t("leadTempo.crmDuplicate")}</p>}
                       </td>
                       <td className="r">{lead.status === "failed" && <RetryButton leadId={id} />}</td>

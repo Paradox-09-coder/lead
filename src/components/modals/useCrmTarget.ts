@@ -9,6 +9,7 @@ import {
   type CrmSource,
   type CrmStage,
 } from "@/lib/connections-client";
+import type { CrmEntity } from "@/lib/crm-entity";
 import { useT } from "@/i18n/client";
 
 interface Loadable<T> {
@@ -59,12 +60,26 @@ function useCrmList<T>(
 export type CrmTargetData = ReturnType<typeof useCrmTarget>;
 
 // Everything an integration needs to know about its target CRM: the stages a
-// lead can land in, its lead fields, and (Bitrix24 only) its lead sources.
-export function useCrmTarget(targetId: string, isBitrix: boolean) {
+// lead (or, for Bitrix24 with `entity` "deal", a deal) can land in, its fields,
+// and (Bitrix24 only) its lead sources. Stages and fields are reloaded when the
+// entity changes: a lead and a deal have different ones.
+export function useCrmTarget(targetId: string, isBitrix: boolean, entity: CrmEntity = "lead") {
   const { t } = useT();
-  const stages = useCrmList<CrmStage>(targetId, true, fetchCrmStages, t("integrationsPage.stagesError"));
+  const effectiveEntity = isBitrix ? entity : "lead";
+  const entityKey = targetId ? `${targetId}:${effectiveEntity}` : "";
+  const stages = useCrmList<CrmStage>(
+    entityKey,
+    true,
+    () => fetchCrmStages(targetId, effectiveEntity),
+    t("integrationsPage.stagesError"),
+  );
   const sources = useCrmList<CrmSource>(targetId, isBitrix, fetchCrmSources, t("integrationsPage.sourcesError"));
-  const fields = useCrmList<CrmField>(targetId, true, fetchCrmFields, t("integrationsPage.fieldsError"));
+  const fields = useCrmList<CrmField>(
+    entityKey,
+    true,
+    () => fetchCrmFields(targetId, effectiveEntity),
+    t("integrationsPage.fieldsError"),
+  );
 
   return {
     stages: stages.items,

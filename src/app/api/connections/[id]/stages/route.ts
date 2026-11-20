@@ -4,13 +4,17 @@ import { connectDB } from "@/lib/mongodb";
 import { Connection } from "@/models/Connection";
 import { getSessionUserId } from "@/lib/server-session";
 import { toErrorResponseBody } from "@/lib/api-error";
-import { fetchBitrixStagesFromFields } from "@/lib/bitrix-fields";
+import { fetchBitrixDealStages, fetchBitrixDealStagesFromFields, fetchBitrixStagesFromFields } from "@/lib/bitrix-fields";
 import { fetchAmoStages } from "@/lib/amocrm";
+import { parseCrmEntity } from "@/lib/crm-entity";
 
 export const runtime = "nodejs";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+// GET /api/connections/<id>/stages[?entity=deal] — the stages a new card can start in. For Bitrix24 `entity=deal`
+// lists the stages of every deal pipeline instead of the lead statuses.
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const entity = parseCrmEntity(new URL(request.url).searchParams.get("entity"));
   const userId = await getSessionUserId();
   if (!userId) {
     return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
@@ -26,6 +30,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
     if (!connection) {
       return localizedJson({ message: "CRM ulanishi topilmadi" }, { status: 404 });
+    }
+
+    if (connection.platform === "bitrix24" && entity === "deal") {
+      try {
+        const stages = await fetchBitrixDealStages(connection.webhookUrl!).catch(() =>
+          fetchBitrixDealStagesFromFields(connection.webhookUrl!),
+        );
+        return NextResponse.json(stages);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Bosqichlar ro'yxati olinmadi";
+        return NextResponse.json({ message }, { status: 502 });
+      }
     }
 
     if (connection.platform === "bitrix24") {

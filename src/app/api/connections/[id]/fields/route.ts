@@ -3,7 +3,8 @@ import { localizedJson } from "@/i18n/api";
 import { connectDB } from "@/lib/mongodb";
 import { Connection } from "@/models/Connection";
 import { getSessionUserId } from "@/lib/server-session";
-import { CREATABLE_FIELD_TYPES, createBitrixLeadField, type CreatableFieldType } from "@/lib/bitrix-fields";
+import { CREATABLE_FIELD_TYPES, createBitrixField, type CreatableFieldType } from "@/lib/bitrix-fields";
+import { parseCrmEntity } from "@/lib/crm-entity";
 import { createAmoLeadField, type AmoFieldLabels } from "@/lib/amocrm";
 import { loadCrmFields } from "@/lib/field-mapping";
 import { getT } from "@/i18n/server";
@@ -27,10 +28,12 @@ async function amoLabels(): Promise<AmoFieldLabels> {
   };
 }
 
-// GET /api/connections/<id>/fields — the CRM lead fields (standard and custom)
-// that a Facebook form question can be mapped to.
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+// GET /api/connections/<id>/fields[?entity=deal] — the CRM lead fields (standard and custom)
+// that a Facebook form question can be mapped to. `entity=deal` (Bitrix24) lists the deal's fields and its
+// contact's instead.
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const entity = parseCrmEntity(new URL(request.url).searchParams.get("entity"));
   const userId = await getSessionUserId();
   if (!userId) {
     return localizedJson({ message: "Avtorizatsiya talab qilinadi" }, { status: 401 });
@@ -46,7 +49,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     }
 
     try {
-      return NextResponse.json(await loadCrmFields(connection, await amoLabels()));
+      return NextResponse.json(await loadCrmFields(connection, await amoLabels(), entity));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Maydonlar ro'yxati olinmadi";
       return NextResponse.json({ message }, { status: 502 });
@@ -75,6 +78,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       type?: unknown;
       multiple?: unknown;
       options?: unknown;
+      entity?: unknown;
     } | null;
 
     const label = typeof body?.label === "string" ? body.label.trim().slice(0, MAX_LABEL) : "";
@@ -118,7 +122,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               input,
               await amoLabels(),
             )
-          : await createBitrixLeadField(connection.webhookUrl!, input);
+          : await createBitrixField(connection.webhookUrl!, input, parseCrmEntity(body?.entity), (await amoLabels()).contactSuffix);
       return NextResponse.json(field, { status: 201 });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Maydon yaratilmadi";
