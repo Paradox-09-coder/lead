@@ -30,7 +30,7 @@ import type { Integration, UpdateIntegrationInput } from "@/lib/integrations-cli
 import { useT } from "@/i18n/client";
 
 const INPUT_CLASS =
-  "mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50";
+  "mt-1.5 w-full field rounded-[14px] px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50";
 
 function platformName(platform: string): string {
   return CONNECT_PLATFORMS.find((p) => p.id === platform)?.name ?? platform;
@@ -179,11 +179,11 @@ export function EditIntegrationModal({
               {t("integrationsPage.targetLabel")} <span className="text-danger">*</span>
             </label>
             <Select value={target} onChange={(value) => handleTargetChange(value)}>
-              <option value="" className="bg-surface">
+              <option value="" className="bg-surface-solid">
                 {t("integrationsPage.targetPlaceholder")}
               </option>
               {crmConnections.map((c) => (
-                <option key={c._id} value={c._id} className="bg-surface">
+                <option key={c._id} value={c._id} className="bg-surface-solid">
                   {platformName(c.platform)} — {c.label}
                 </option>
               ))}
@@ -207,7 +207,7 @@ export function EditIntegrationModal({
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="rounded-md bg-primary hover:bg-primary-hover disabled:opacity-50 text-white px-5 py-2 text-sm font-medium transition-colors"
+              className="pressable btn-glass rounded-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-white px-5 py-2 text-sm font-medium transition-colors"
             >
               {isSaving ? t("integrationsPage.saving") : t("integrationsPage.save")}
             </button>

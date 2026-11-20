@@ -209,9 +209,14 @@ export const ru: Dict = {
     notifications: "Уведомления",
     menu: "Меню",
     logout: "Выйти",
+    theme: "Тема",
+    themeSystem: "Как в системе",
+    themeLight: "Светлая",
+    themeDark: "Тёмная",
   },
 
   dashboardHome: {
+    trendTitle: "Последние 14 дней",
     title: "Главная",
     subtitle: "Статистика вашего бизнеса",
     planLabel: "Тариф",

@@ -133,7 +133,7 @@ export function ConnectProfileModal({
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- this hits an API route that issues a server redirect to Facebook's OAuth dialog, not a page */}
           <a
             href="/api/connections/facebook/start"
-            className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm transition-colors"
+            className="mt-4 inline-flex items-center gap-2 pressable btn-glass rounded-full bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm transition-colors"
           >
             <ExternalLink className="size-4" />
             {t("connectModal.fbContinue")}
@@ -149,7 +149,7 @@ export function ConnectProfileModal({
               value={webhookUrl}
               onChange={(event) => setWebhookUrl(event.target.value)}
               placeholder="https://yourcompany.bitrix24.com/rest/1/xxxxx/"
-              className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
+              className="mt-1.5 w-full field rounded-[14px] px-3 py-2 text-sm outline-none focus:border-primary"
             />
             <p className="mt-1.5 text-xs text-muted">{t("connectModal.bitrixHint")}</p>
           </div>
@@ -159,7 +159,7 @@ export function ConnectProfileModal({
           <button
             onClick={handleConnectBitrix24}
             disabled={!webhookUrl || isSubmitting}
-            className="w-full flex items-center justify-center gap-2 rounded-md bg-primary hover:bg-primary-hover disabled:opacity-50 text-white py-2.5 text-sm font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 pressable btn-glass rounded-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-white py-2.5 text-sm font-medium transition-colors"
           >
             {isSubmitting && <RefreshCw className="size-4 animate-spin" />}
             {isSubmitting ? t("connectModal.checking") : t("connectModal.connect")}
@@ -175,7 +175,7 @@ export function ConnectProfileModal({
               value={accountUrl}
               onChange={(event) => setAccountUrl(event.target.value)}
               placeholder={t("connectModal.amoUrlPlaceholder")}
-              className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
+              className="mt-1.5 w-full field rounded-[14px] px-3 py-2 text-sm outline-none focus:border-primary"
             />
           </div>
           <div>
@@ -184,7 +184,7 @@ export function ConnectProfileModal({
               value={jwtToken}
               onChange={(event) => setJwtToken(event.target.value)}
               placeholder="eyJhbGciOiJIUzI1NiIs..."
-              className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm font-mono outline-none focus:border-primary"
+              className="mt-1.5 w-full field rounded-[14px] px-3 py-2 text-sm font-mono outline-none focus:border-primary"
             />
             <p className="mt-1.5 text-xs text-muted">{t("connectModal.amoHint")}</p>
           </div>
@@ -194,7 +194,7 @@ export function ConnectProfileModal({
           <button
             onClick={handleConnectAmoCrm}
             disabled={!accountUrl || !jwtToken || isSubmitting}
-            className="w-full flex items-center justify-center gap-2 rounded-md bg-primary hover:bg-primary-hover disabled:opacity-50 text-white py-2.5 text-sm font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 pressable btn-glass rounded-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-white py-2.5 text-sm font-medium transition-colors"
           >
             {isSubmitting && <RefreshCw className="size-4 animate-spin" />}
             {isSubmitting ? t("connectModal.checking") : t("connectModal.connect")}

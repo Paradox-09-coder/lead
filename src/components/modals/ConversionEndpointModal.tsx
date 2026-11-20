@@ -13,7 +13,7 @@ import {
 import { useT } from "@/i18n/client";
 
 const INPUT_CLASS =
-  "mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50";
+  "mt-1.5 w-full field rounded-[14px] px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50";
 
 // Adds a conversion endpoint, or edits `endpoint` when given. When editing, an
 // empty token field keeps the stored token.
@@ -130,7 +130,7 @@ export function ConversionEndpointModal({
             <label className="block text-sm font-medium">{t("conversions.event")}</label>
             <Select value={eventName} onChange={(value) => setEventName(value as typeof eventName)}>
               {CONVERSION_EVENT_NAMES.map((name) => (
-                <option key={name} value={name} className="bg-surface">
+                <option key={name} value={name} className="bg-surface-solid">
                   {name}
                 </option>
               ))}
@@ -140,7 +140,7 @@ export function ConversionEndpointModal({
             <label className="block text-sm font-medium">{t("conversions.currency")}</label>
             <Select value={currency} onChange={(value) => setCurrency(value as typeof currency)}>
               {CONVERSION_CURRENCIES.map((code) => (
-                <option key={code} value={code} className="bg-surface">
+                <option key={code} value={code} className="bg-surface-solid">
                   {code}
                 </option>
               ))}
@@ -187,7 +187,7 @@ export function ConversionEndpointModal({
           <button
             type="submit"
             disabled={isSaving}
-            className="rounded-md bg-primary hover:bg-primary-hover disabled:opacity-50 text-white px-5 py-2 text-sm font-medium transition-colors"
+            className="pressable btn-glass rounded-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-white px-5 py-2 text-sm font-medium transition-colors"
           >
             {isSaving ? t("conversions.saving") : t("conversions.save")}
           </button>

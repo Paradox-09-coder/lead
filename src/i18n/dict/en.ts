@@ -209,9 +209,14 @@ export const en: Dict = {
     notifications: "Notifications",
     menu: "Menu",
     logout: "Log out",
+    theme: "Theme",
+    themeSystem: "Match system",
+    themeLight: "Light",
+    themeDark: "Dark",
   },
 
   dashboardHome: {
+    trendTitle: "Last 14 days",
     title: "Dashboard",
     subtitle: "Your business at a glance",
     planLabel: "Plan",

@@ -46,8 +46,8 @@ export function LanguageSwitcher({ variant = "compact" }: { variant?: Variant })
         aria-label="Language"
         className={
           variant === "icon"
-            ? "p-2 rounded-md hover:bg-surface-hover text-muted flex items-center gap-1"
-            : "flex items-center gap-1 text-sm text-muted hover:text-foreground transition-colors px-2 py-1.5 rounded-md"
+            ? "p-2 rounded-full hover:bg-surface-hover text-muted flex items-center gap-1"
+            : "flex items-center gap-1 text-sm font-medium text-muted hover:text-foreground hover:bg-surface-hover transition-colors px-3 min-h-10 rounded-full"
         }
       >
         {variant === "icon" ? <Globe className="size-4" /> : null}
@@ -56,7 +56,7 @@ export function LanguageSwitcher({ variant = "compact" }: { variant?: Variant })
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-40 rounded-lg border border-border bg-surface shadow-xl py-1 z-50">
+        <div className="glass-pop absolute right-0 mt-2 w-40 rounded-[18px] p-1.5 z-50">
           {LOCALES.map((locale) => {
             const isActive = locale === current;
             return (
@@ -64,7 +64,7 @@ export function LanguageSwitcher({ variant = "compact" }: { variant?: Variant })
                 key={locale}
                 onClick={() => selectLocale(locale)}
                 disabled={pending !== null}
-                className="w-full flex items-center justify-between gap-2 text-left px-3 py-2 text-sm hover:bg-surface-hover transition-colors disabled:opacity-50"
+                className="w-full flex items-center justify-between gap-2 text-left px-3 py-2 text-sm rounded-[12px] hover:bg-surface-hover transition-colors disabled:opacity-50"
               >
                 <span>{LOCALE_LABELS[locale]}</span>
                 {isActive && <Check className="size-4 text-primary" />}

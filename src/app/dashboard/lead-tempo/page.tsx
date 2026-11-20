@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Inbox } from "lucide-react";
 import { connectDB } from "@/lib/mongodb";
 import { Lead, type LeadStatus } from "@/models/Lead";
 import { getSessionUserId } from "@/lib/server-session";
@@ -8,6 +9,7 @@ import { RetryButton } from "@/components/RetryButton";
 import { leadSourceKey } from "@/lib/public-lead";
 import { FacebookSyncBar } from "@/components/FacebookSyncBar";
 import { Integration } from "@/models/Integration";
+import { Card, EmptyState, PageHeader, SegmentedLinks } from "@/components/ui/glass";
 
 const FILTER_VALUES: Array<LeadStatus | "all"> = ["all", "success", "failed", "pending", "saved"];
 
@@ -61,81 +63,72 @@ export default async function LeadTempoPage({
 
   return (
     <div>
-      <div>
-        <h1 className="text-2xl font-semibold">{t("leadTempo.title")}</h1>
-        <p className="mt-1 text-sm text-muted">{t("leadTempo.subtitle")}</p>
-      </div>
+      <PageHeader title={t("leadTempo.title")} subtitle={t("leadTempo.subtitle")} />
 
       <FacebookSyncBar />
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {FILTER_VALUES.map((value) => (
-          <Link
-            key={value}
-            href={value === "all" ? "/dashboard/lead-tempo" : `/dashboard/lead-tempo?status=${value}`}
-            className={`text-sm rounded-md px-3 py-1.5 border transition-colors ${
-              activeFilter === value
-                ? "border-primary bg-primary text-white"
-                : "border-border hover:bg-surface-hover"
-            }`}
-          >
-            {t(FILTER_LABEL_KEYS[value])}
-          </Link>
-        ))}
+      <div className="mt-4">
+        <SegmentedLinks
+          label={t("leadTempo.title")}
+          value={activeFilter}
+          options={FILTER_VALUES.map((value) => ({
+            value,
+            label: t(FILTER_LABEL_KEYS[value]),
+            href: value === "all" ? "/dashboard/lead-tempo" : `/dashboard/lead-tempo?status=${value}`,
+          }))}
+        />
       </div>
 
-      {leads.length === 0 ? (
-        <p className="mt-8 text-muted">{t("leadTempo.empty")}</p>
-      ) : (
-        <div className="mt-6 overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left border-b border-border text-muted">
-                <th className="py-2 px-4 font-medium">{t("leadTempo.colDate")}</th>
-                <th className="py-2 px-4 font-medium">{t("leadTempo.colLead")}</th>
-                <th className="py-2 px-4 font-medium">{t("leadTempo.colSource")}</th>
-                <th className="py-2 px-4 font-medium">{t("leadTempo.colStatus")}</th>
-                <th className="py-2 px-4 font-medium">{t("leadTempo.colCrmId")}</th>
-                <th className="py-2 px-4 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {leads.map((lead) => {
-                const id = lead._id.toString();
-                return (
-                  <tr key={id} className="border-b border-border last:border-0">
-                    <td className="py-3 px-4 whitespace-nowrap text-muted">
-                      {lead.createdAt.toLocaleString(localeTag)}
-                    </td>
-                    <td className="py-3 px-4">
-                      <Link href={`/dashboard/lead-tempo/${id}`} className="hover:underline">
-                        {lead.fields?.name || lead.fields?.phone || lead.fields?.email || t("leadTempo.unnamed")}
-                      </Link>
-                      {lead.fields?.phone && lead.fields?.name && (
-                        <p className="text-xs text-muted">{lead.fields.phone}</p>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      {t(leadSourceKey(lead.source))}
-                      {formLabel(lead) && <p className="text-xs text-muted">{formLabel(lead)}</p>}
-                    </td>
-                    <td className="py-3 px-4">
-                      <StatusBadge status={lead.status} />
-                    </td>
-                    <td className="py-3 px-4">
-                      {lead.crmLeadId ?? "—"}
-                      {lead.crmDuplicate && <p className="text-xs text-muted">{t("leadTempo.crmDuplicate")}</p>}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      {lead.status === "failed" && <RetryButton leadId={id} />}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Card className="mt-4" dense flush>
+        {leads.length === 0 ? (
+          <EmptyState icon={Inbox} title={t("leadTempo.empty")} />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>{t("leadTempo.colDate")}</th>
+                  <th>{t("leadTempo.colLead")}</th>
+                  <th>{t("leadTempo.colSource")}</th>
+                  <th>{t("leadTempo.colStatus")}</th>
+                  <th>{t("leadTempo.colCrmId")}</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {leads.map((lead) => {
+                  const id = lead._id.toString();
+                  return (
+                    <tr key={id}>
+                      <td className="text-ink-3">{lead.createdAt.toLocaleString(localeTag)}</td>
+                      <td>
+                        <Link href={`/dashboard/lead-tempo/${id}`} className="font-medium hover:underline">
+                          {lead.fields?.name || lead.fields?.phone || lead.fields?.email || t("leadTempo.unnamed")}
+                        </Link>
+                        {lead.fields?.phone && lead.fields?.name && (
+                          <p className="text-xs text-ink-3">{lead.fields.phone}</p>
+                        )}
+                      </td>
+                      <td>
+                        {t(leadSourceKey(lead.source))}
+                        {formLabel(lead) && <p className="text-xs text-ink-3">{formLabel(lead)}</p>}
+                      </td>
+                      <td>
+                        <StatusBadge status={lead.status} />
+                      </td>
+                      <td className="num">
+                        {lead.crmLeadId ?? "—"}
+                        {lead.crmDuplicate && <p className="text-xs text-ink-3">{t("leadTempo.crmDuplicate")}</p>}
+                      </td>
+                      <td className="r">{lead.status === "failed" && <RetryButton leadId={id} />}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

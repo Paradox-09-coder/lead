@@ -250,10 +250,10 @@ export function Select({
               bottom: position.bottom,
               maxHeight: MENU_MAX_HEIGHT,
             }}
-            className="z-[100] overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-2xl shadow-black/40"
+            className="glass-pop z-[100] overflow-y-auto rounded-[18px] p-1.5"
           >
             {searchable && (
-              <div className="sticky top-0 z-10 -mx-1 -mt-1 mb-1 bg-surface p-2 pb-1">
+              <div className="sticky top-0 z-10 -mx-1.5 -mt-1.5 mb-1 bg-[rgb(var(--glass-rgb)/0.97)] p-2 pb-1">
                 <input
                   ref={searchRef}
                   value={query}

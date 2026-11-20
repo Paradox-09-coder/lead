@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2, Circle, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronRight, Circle, ListChecks } from "lucide-react";
+import { Card } from "@/components/ui/glass";
+import { cx } from "@/lib/cx";
 import { useT } from "@/i18n/client";
 
 // The first-run checklist. Each step shows as done once the account really has
@@ -22,25 +24,27 @@ export function ChecklistCard({
   if (remaining === 0) return null;
 
   return (
-    <div className="rounded-xl border border-border bg-surface p-6">
-      <h2 className="font-semibold">{t("dashboardHome.checklistTitle")}</h2>
-      <p className="mt-1 text-sm text-muted">{t("dashboardHome.checklistSub", { count: remaining })}</p>
-
-      <div className="mt-4 space-y-2">
+    <Card
+      icon={ListChecks}
+      tile="orange"
+      title={t("dashboardHome.checklistTitle")}
+      subtitle={t("dashboardHome.checklistSub", { count: remaining })}
+    >
+      <div className="space-y-2">
         {items.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className="flex items-center justify-between rounded-md border border-border px-4 py-3 hover:bg-surface-hover transition-colors"
+            className="pressable flex items-center justify-between rounded-[16px] border border-line bg-surface px-4 py-3 hover:bg-surface-hover"
           >
-            <span className={`flex items-center gap-2.5 text-sm ${item.done ? "text-muted line-through" : ""}`}>
-              {item.done ? <CheckCircle2 className="size-4 text-success" /> : <Circle className="size-4 text-muted" />}
+            <span className={cx("flex items-center gap-2.5 text-sm font-medium", item.done && "text-ink-3 line-through")}>
+              {item.done ? <CheckCircle2 className="size-4 text-good" /> : <Circle className="size-4 text-ink-3" />}
               {t(item.key)}
             </span>
-            <ChevronRight className="size-4 text-muted" />
+            <ChevronRight className="size-4 text-ink-3" />
           </Link>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

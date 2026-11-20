@@ -55,12 +55,12 @@ export default function ConnectionsPage() {
     <div>
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">{t("connections.title")}</h1>
-          <p className="mt-1 text-sm text-muted">{t("connections.subtitle")}</p>
+          <h1 className="text-[1.75rem] leading-[1.1] font-bold tracking-[-0.022em] text-ink sm:text-[2.125rem]">{t("connections.title")}</h1>
+          <p className="mt-1.5 text-[0.9375rem] text-ink-2">{t("connections.subtitle")}</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors shrink-0"
+          className="flex items-center gap-2 pressable btn-glass rounded-full bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors shrink-0"
         >
           <Plus className="size-4" />
           {t("connections.addProfile")}
@@ -97,7 +97,7 @@ export default function ConnectionsPage() {
           <p className="mt-1 text-sm text-muted max-w-sm">{t("connections.emptySub")}</p>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="mt-5 flex items-center gap-2 rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors"
+            className="mt-5 flex items-center gap-2 pressable btn-glass rounded-full bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors"
           >
             <Plus className="size-4" />
             {t("connections.firstProfile")}
@@ -108,7 +108,7 @@ export default function ConnectionsPage() {
           {connections.map((connection) => (
             <div
               key={connection._id}
-              className="rounded-xl border border-border bg-surface p-5 flex items-center gap-3"
+              className="panel p-5 flex items-center gap-3"
             >
               <span
                 className="flex size-9 shrink-0 items-center justify-center rounded-md text-xs font-bold text-white"

@@ -2,9 +2,10 @@ import mongoose from "mongoose";
 import { Lead, type LeadSource, type LeadStatus } from "@/models/Lead";
 import { Connection } from "@/models/Connection";
 import { Integration } from "@/models/Integration";
-import { startOfTashkentDay, startOfTashkentMonth } from "@/lib/reports";
+import { getDailyCounts, startOfTashkentDay, startOfTashkentMonth, type DayPoint } from "@/lib/reports";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const TREND_DAYS = 14;
 
 export interface PeriodStat {
   total: number;
@@ -26,6 +27,8 @@ export interface HomeStats {
   week: PeriodStat;
   month: PeriodStat;
   recent: RecentLead[];
+  // Last 14 days, oldest first, for the trend chart.
+  daily: DayPoint[];
   hasAccountConnection: boolean; // a Facebook account is connected
   hasIntegration: boolean;
 }
@@ -46,7 +49,7 @@ export async function getHomeStats(userId: string): Promise<HomeStats> {
   });
 
   const user = new mongoose.Types.ObjectId(userId);
-  const [aggregate, recent, accountConnection, integration] = await Promise.all([
+  const [aggregate, recent, daily, accountConnection, integration] = await Promise.all([
     Lead.aggregate<Record<string, number>>([
       { $match: { user, createdAt: { $gte: earliest } } },
       {
@@ -59,6 +62,7 @@ export async function getHomeStats(userId: string): Promise<HomeStats> {
       },
     ]),
     Lead.find({ user }).sort({ createdAt: -1 }).limit(10),
+    getDailyCounts(userId, TREND_DAYS),
     Connection.exists({ user, platform: "facebook" }),
     Integration.exists({ user }),
   ]);
@@ -79,6 +83,7 @@ export async function getHomeStats(userId: string): Promise<HomeStats> {
       status: lead.status,
       createdAt: lead.createdAt,
     })),
+    daily,
     hasAccountConnection: Boolean(accountConnection),
     hasIntegration: Boolean(integration),
   };

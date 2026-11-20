@@ -35,7 +35,7 @@ export function OrderPlanButton({ planId, disabled }: { planId: string; disabled
       <button
         onClick={handleClick}
         disabled={isBusy || disabled}
-        className="w-full rounded-md bg-primary hover:bg-primary-hover text-white py-2 text-sm font-medium transition-colors disabled:opacity-50"
+        className="w-full pressable btn-glass rounded-full bg-primary hover:bg-primary-hover text-white py-2 text-sm font-medium transition-colors disabled:opacity-50"
       >
         {isBusy ? t("orders.orderSending") : t("orders.orderBtn")}
       </button>
@@ -78,7 +78,7 @@ export function OrderRowActions({ orderId, isAdmin }: { orderId: string; isAdmin
       <button
         onClick={() => update("cancelled")}
         disabled={isBusy}
-        className="text-xs rounded-md border border-border px-2.5 py-1 hover:bg-surface-hover transition-colors disabled:opacity-50"
+        className="text-xs rounded-[14px] border border-border px-2.5 py-1 hover:bg-surface-hover transition-colors disabled:opacity-50"
       >
         {t("orders.cancel")}
       </button>

@@ -64,7 +64,7 @@ const FIELD_TYPE_OPTIONS: Array<{ value: NewCrmFieldType; labelKey: string }> = 
 ];
 
 const INPUT_CLASS =
-  "mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary";
+  "mt-1.5 w-full field rounded-[14px] px-3 py-2 text-sm outline-none focus:border-primary";
 
 // Inline form for creating a new CRM field for one question.
 function NewFieldForm({
@@ -175,7 +175,7 @@ function NewFieldForm({
           type="button"
           onClick={() => void handleCreate()}
           disabled={!canSave || isSaving}
-          className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
+          className="pressable btn-glass rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
         >
           {isSaving ? t("integrationsPage.fieldsNewCreating") : t("integrationsPage.fieldsNewCreate")}
         </button>

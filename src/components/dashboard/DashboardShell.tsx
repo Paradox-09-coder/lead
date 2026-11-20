@@ -5,30 +5,40 @@ import { X } from "lucide-react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { MockDataProvider } from "@/components/dashboard/MockDataContext";
+import { MotionLayer } from "@/components/dashboard/MotionLayer";
+import { Wallpaper } from "@/components/dashboard/Wallpaper";
 
 interface DashboardUser {
   fullName?: string;
   email?: string;
 }
 
+/**
+ * Data365 Studio shell: pastel wallpaper, floating glass sidebar (drawer on phones), glass top bar.
+ * The `studio-shell` class is what switches globals.css to the Liquid Glass look (`html:has(.studio-shell)`).
+ */
 export function DashboardShell({ children, user }: { children: ReactNode; user?: DashboardUser }) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   return (
     <MockDataProvider>
-      <div className="min-h-screen flex">
-        <Sidebar className="hidden md:flex sticky top-0 h-screen overflow-y-auto" />
+      <div className="studio-shell min-h-dvh">
+        <Wallpaper />
+        <MotionLayer />
+
+        <aside className="glass fixed inset-y-3 start-3 z-30 hidden w-[264px] flex-col rounded-[28px] p-3 lg:flex">
+          <Sidebar />
+        </aside>
 
         {isMobileNavOpen && (
-          <div className="fixed inset-0 z-50 md:hidden">
-            <div className="absolute inset-0 bg-black/60" onClick={() => setIsMobileNavOpen(false)} />
-            {/* Solid backdrop: the sidebar's own background is translucent, so without it the page shows through the drawer. */}
-            <div className="absolute inset-y-0 left-0 w-64 bg-background shadow-2xl">
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div className="fade-in absolute inset-0 bg-black/45" onClick={() => setIsMobileNavOpen(false)} />
+            <div className="glass-pop absolute inset-y-3 start-3 w-[280px] max-w-[calc(100vw-24px)] rounded-[28px] p-3">
               <div className="relative h-full">
-                <Sidebar className="flex h-full" />
+                <Sidebar onNavigate={() => setIsMobileNavOpen(false)} />
                 <button
                   onClick={() => setIsMobileNavOpen(false)}
-                  className="absolute top-5 right-3 p-1.5 rounded-md hover:bg-surface-hover"
+                  className="pressable absolute top-1 right-0 inline-grid h-9 w-9 place-items-center rounded-full text-ink-2 hover:bg-surface-2 hover:text-ink"
                   aria-label="Yopish"
                 >
                   <X className="size-4" />
@@ -38,9 +48,11 @@ export function DashboardShell({ children, user }: { children: ReactNode; user?:
           </div>
         )}
 
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="lg:ps-[280px]">
           <Topbar onMenuClick={() => setIsMobileNavOpen(true)} user={user} />
-          <main className="flex-1 px-4 sm:px-6 py-6">{children}</main>
+          <main className="mx-auto w-full max-w-[1440px] px-4 pt-5 pb-16 sm:px-6 lg:px-8">
+            <div className="page-in">{children}</div>
+          </main>
         </div>
       </div>
     </MockDataProvider>

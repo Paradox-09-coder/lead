@@ -150,7 +150,7 @@ export function ApiKeysManager() {
 
   return (
     <div className="mt-6 space-y-6">
-      <form onSubmit={handleCreate} className="rounded-xl border border-border bg-surface p-5">
+      <form onSubmit={handleCreate} className="panel p-5">
         <p className="font-medium">{t("apiKeys.createNew")}</p>
         <div className="mt-3 flex flex-col sm:flex-row gap-3">
           <input
@@ -159,12 +159,12 @@ export function ApiKeysManager() {
             placeholder={t("apiKeys.namePlaceholder")}
             maxLength={60}
             required
-            className="flex-1 rounded-md border border-border bg-transparent px-3 py-2 outline-none focus:border-primary"
+            className="flex-1 field rounded-[14px] px-3 py-2 outline-none focus:border-primary"
           />
           <button
             type="submit"
             disabled={isCreating}
-            className="rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 font-medium transition-colors disabled:opacity-50"
+            className="pressable btn-glass rounded-full bg-primary hover:bg-primary-hover text-white px-4 py-2 font-medium transition-colors disabled:opacity-50"
           >
             {isCreating ? t("apiKeys.creating") : t("apiKeys.create")}
           </button>
@@ -172,7 +172,7 @@ export function ApiKeysManager() {
         {error && <p className="mt-3 text-sm text-danger">{error}</p>}
       </form>
 
-      <div className="rounded-xl border border-border bg-surface overflow-hidden">
+      <div className="panel overflow-hidden">
         {isLoading ? (
           <p className="p-5 text-sm text-muted">{t("common.loading")}</p>
         ) : keys.length === 0 ? (

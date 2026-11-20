@@ -96,7 +96,7 @@ export function IntegrationSubView({ onBack, children }: { onBack: () => void; c
         <button
           type="button"
           onClick={onBack}
-          className="rounded-md bg-primary px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover"
+          className="pressable btn-glass rounded-full bg-primary px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover"
         >
           {t("integrationsPage.done")}
         </button>

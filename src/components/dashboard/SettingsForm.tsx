@@ -46,7 +46,7 @@ function ProfileSection({ fullName, email }: { fullName: string; email: string }
   }
 
   return (
-    <section className="rounded-xl border border-border bg-surface p-6">
+    <section className="panel p-6">
       <div className="flex items-center gap-2">
         <User2 className="size-5 text-primary" />
         <h2 className="font-semibold">{t("settings.profileTitle")}</h2>
@@ -64,7 +64,7 @@ function ProfileSection({ fullName, email }: { fullName: string; email: string }
             onChange={(event) => setName(event.target.value)}
             maxLength={80}
             required
-            className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 outline-none focus:border-primary"
+            className="mt-1.5 w-full field rounded-[14px] px-3 py-2 outline-none focus:border-primary"
           />
         </div>
         <div>
@@ -72,7 +72,7 @@ function ProfileSection({ fullName, email }: { fullName: string; email: string }
           <input
             value={email}
             disabled
-            className="mt-1.5 w-full rounded-md border border-border bg-surface-hover text-muted px-3 py-2"
+            className="mt-1.5 w-full field rounded-[14px] text-ink-3 px-3 py-2 opacity-80"
           />
           <p className="mt-1 text-xs text-muted">{t("settings.emailLocked")}</p>
         </div>
@@ -83,7 +83,7 @@ function ProfileSection({ fullName, email }: { fullName: string; email: string }
         <button
           type="submit"
           disabled={isBusy || name.trim() === fullName}
-          className="rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+          className="pressable btn-glass rounded-full bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
         >
           {isBusy ? t("common.submitting") : t("common.save")}
         </button>
@@ -163,7 +163,7 @@ function PasswordSection({ email }: { email: string }) {
   }
 
   return (
-    <section className="rounded-xl border border-border bg-surface p-6">
+    <section className="panel p-6">
       <div className="flex items-center gap-2">
         <KeyRound className="size-5 text-primary" />
         <h2 className="font-semibold">{t("settings.passwordTitle")}</h2>
@@ -177,7 +177,7 @@ function PasswordSection({ email }: { email: string }) {
           <button
             onClick={requestCode}
             disabled={isBusy}
-            className="inline-flex items-center gap-2 rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 pressable btn-glass rounded-full bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
           >
             <Mail className="size-4" />
             {isBusy ? t("settings.passwordSending") : t("settings.passwordRequest")}
@@ -206,7 +206,7 @@ function PasswordSection({ email }: { email: string }) {
               value={code}
               onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
               placeholder="123456"
-              className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 outline-none focus:border-primary tracking-widest text-center font-mono text-lg"
+              className="mt-1.5 w-full field rounded-[14px] px-3 py-2 outline-none focus:border-primary tracking-widest text-center font-mono text-lg"
             />
           </div>
           <div>
@@ -221,7 +221,7 @@ function PasswordSection({ email }: { email: string }) {
               autoComplete="new-password"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
-              className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 outline-none focus:border-primary"
+              className="mt-1.5 w-full field rounded-[14px] px-3 py-2 outline-none focus:border-primary"
             />
           </div>
           <div>
@@ -236,7 +236,7 @@ function PasswordSection({ email }: { email: string }) {
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
-              className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 outline-none focus:border-primary"
+              className="mt-1.5 w-full field rounded-[14px] px-3 py-2 outline-none focus:border-primary"
             />
           </div>
 
@@ -246,7 +246,7 @@ function PasswordSection({ email }: { email: string }) {
             <button
               type="submit"
               disabled={isBusy}
-              className="rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+              className="pressable btn-glass rounded-full bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
             >
               {isBusy ? t("common.submitting") : t("settings.passwordChange")}
             </button>
@@ -362,7 +362,7 @@ function TelegramSection() {
   }
 
   return (
-    <section className="rounded-xl border border-border bg-surface p-6">
+    <section className="panel p-6">
       <div className="flex items-center gap-2">
         <Send className="size-5 text-primary" />
         <h2 className="font-semibold">{t("settings.telegramTitle")}</h2>
@@ -374,7 +374,7 @@ function TelegramSection() {
       )}
 
       {status?.configured && status.linked && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border px-4 py-3">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-border px-4 py-3">
           <div className="min-w-0">
             <p className="flex items-center gap-2 text-sm font-medium text-success">
               <CheckCircle2 className="size-4 shrink-0" />
@@ -387,7 +387,7 @@ function TelegramSection() {
           <button
             onClick={unlink}
             disabled={isBusy}
-            className="rounded-md border border-border px-3 py-1.5 text-sm text-muted transition-colors hover:text-danger disabled:opacity-50"
+            className="rounded-[14px] border border-border px-3 py-1.5 text-sm text-muted transition-colors hover:text-danger disabled:opacity-50"
           >
             {t("settings.telegramUnlink")}
           </button>
@@ -400,7 +400,7 @@ function TelegramSection() {
             <button
               onClick={startLinking}
               disabled={isBusy}
-              className="inline-flex items-center gap-2 rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 pressable btn-glass rounded-full bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
             >
               <Send className="size-4" />
               {isBusy ? t("settings.telegramPreparing") : t("settings.telegramLink")}
@@ -412,7 +412,7 @@ function TelegramSection() {
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 pressable btn-glass rounded-full bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors"
               >
                 <ExternalLink className="size-4" />
                 {t("settings.telegramOpen")}

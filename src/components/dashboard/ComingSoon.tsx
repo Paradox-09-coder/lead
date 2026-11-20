@@ -14,8 +14,8 @@ export async function ComingSoon({
   const { t } = await getT();
   return (
     <div>
-      <h1 className="text-2xl font-semibold">{title}</h1>
-      <div className="mt-6 rounded-xl border border-dashed border-border bg-surface/50 py-20 flex flex-col items-center text-center px-6">
+      <h1 className="text-[1.75rem] leading-[1.1] font-bold tracking-[-0.022em] text-ink sm:text-[2.125rem]">{title}</h1>
+      <div className="mt-6 panel border-dashed py-20 flex flex-col items-center text-center px-6">
         <div className="size-12 rounded-full bg-primary/15 flex items-center justify-center">
           <Icon className="size-5 text-primary" />
         </div>

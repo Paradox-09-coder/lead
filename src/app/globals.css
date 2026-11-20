@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/*
+ * Two looks live in this file:
+ *  1. The original dark LeadSync palette (:root) — landing, login, register, legal pages.
+ *  2. The Data365 Studio "Liquid Glass" look — applied only while the dashboard shell is on the page
+ *     (`html:has(.studio-shell)`), light-first with a soft graphite dark mode (`data-theme` on <html>).
+ *
+ * The Studio block keeps LeadSync's token names (--background, --surface, --border, --primary …) and points
+ * them at the Studio palette, so every existing `bg-surface`, `text-muted`, `border-border` utility in the
+ * dashboard restyles itself without touching each file. Design rules: docs/DESIGN.md in Data365-Studio.
+ */
+
 :root {
   --background: #0a0e1a;
   --surface: #10151f;
@@ -13,7 +24,35 @@
   --success: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
+
+  /* Fallbacks for the Studio-only tokens, so components shared with the dark public pages (language switcher,
+   * Select, Modal) stay readable there too. The Studio block below overrides all of these inside the dashboard. */
+  --surface-2: rgb(255 255 255 / 0.06);
+  --surface-solid: var(--surface);
+  --border-strong: rgb(255 255 255 / 0.16);
+  --ink: var(--foreground);
+  --ink-2: color-mix(in srgb, var(--foreground) 78%, var(--muted));
+  --ink-3: var(--muted);
+  --primary-strong: #a5b4fc;
+  --primary-fill: var(--primary);
+  --primary-soft: rgb(99 102 241 / 0.16);
+  --mint: #14532d;
+  --mint-ink: #86efac;
+  --good: var(--success);
+  --warm: var(--warning);
+  --warm-soft: rgb(245 158 11 / 0.16);
+  --danger-soft: rgb(239 68 68 / 0.16);
+  --glass-rgb: 22 27 40;
+  --glass-a-pop: 0.97;
+  --glass-blur: 22px;
+  --glass-sat: 1.4;
+  --glass-line: rgb(255 255 255 / 0.1);
+  --glass-rim: rgb(255 255 255 / 0.12);
+  --glass-sheen: rgb(255 255 255 / 0.04);
+  --shadow-pop: 0 24px 56px -16px rgb(0 0 0 / 0.7);
 }
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme inline {
   --color-background: var(--background);
@@ -30,6 +69,27 @@
   --color-warning: var(--warning);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Studio-only utilities (text-ink, bg-surface-2, text-primary-strong …); used inside the dashboard. */
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-surface-2: var(--surface-2);
+  --color-surface-solid: var(--surface-solid);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-fill: var(--primary-fill);
+  --color-primary-soft: var(--primary-soft);
+  --color-mint: var(--mint);
+  --color-mint-ink: var(--mint-ink);
+  --color-good: var(--good);
+  --color-warm: var(--warm);
+  --color-warm-soft: var(--warm-soft);
+  --color-danger-soft: var(--danger-soft);
+  --radius-card: 26px;
+  --ease-calm: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.3, 1.35, 0.5, 1);
 }
 
 body {
@@ -48,4 +108,702 @@ body {
 
 .animate-marquee {
   animation: marquee 28s linear infinite;
+}
+
+/* =====================================================================================================
+ * Data365 Studio look — tokens (dashboard only)
+ *
+ * --lq (0..1) is the "Liquid Glass" amount: more liquid = clearer glass, brighter orbs.
+ * <html data-theme="light|dark"> is written by the inline script in app/layout.tsx before first paint.
+ * ===================================================================================================== */
+html:has(.studio-shell) {
+  --lq: 0.6;
+
+  /* Page + wallpaper orbs */
+  --page-bg: #eef0f6;
+  --orb-1: #86b2ff;
+  --orb-2: #b7a0ff;
+  --orb-3: #7adfcb;
+  --orb-4: #ffc19c;
+  --orb-5: #ff9fc6;
+  --orb-o: calc(0.3 + var(--lq) * 0.55);
+  --orb-blur: calc(70px - 30px * var(--lq));
+
+  /* Glass */
+  --glass-rgb: 255 255 255;
+  --card-rgb: 255 255 255;
+  --glass-a: calc(0.76 - var(--lq) * 0.46);
+  --glass-a-strong: calc(0.64 - var(--lq) * 0.5);
+  --glass-a-pop: calc(0.97 - var(--lq) * 0.07);
+  --glass-a-dense: calc(0.9 - var(--lq) * 0.18);
+  --glass-blur: calc(32px - var(--lq) * 18px);
+  --glass-blur-panel: calc(44px - var(--lq) * 32px);
+  --glass-sat: calc(1.45 + var(--lq) * 0.9);
+  --rim-a: calc(0.55 + var(--lq) * 0.45);
+  --rim-b: calc(0.1 + var(--lq) * 0.25);
+  --glow-a: calc(var(--lq) * 0.32);
+  --glass-rim: rgb(255 255 255 / var(--rim-a));
+  --glass-sheen: rgb(255 255 255 / var(--glow-a));
+  --glass-line: rgb(255 255 255 / calc(0.35 + var(--lq) * 0.3));
+  --spot-on: rgb(255 255 255 / calc(0.32 + var(--lq) * 0.3));
+  --lens-bg: rgb(255 255 255 / calc(0.98 - var(--lq) * 0.3));
+  --lens-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 3px 10px -2px rgb(0 0 0 / 0.12);
+  --shadow-card: 0 1px 1px rgb(0 0 0 / 0.02), 0 6px 22px -10px rgb(28 32 60 / 0.16);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.03), 0 14px 32px -12px rgb(28 32 60 / 0.24);
+  --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.04), 0 24px 56px -16px rgb(20 24 50 / 0.32);
+
+  /* Text */
+  --ink: #1d1d1f;
+  --ink-2: #545458;
+  --ink-3: #6b6b70;
+
+  /* Accent (Studio blue). --primary-brand is the lighter brand blue (charts, focus glow); --primary is the
+   * filled-button colour (>= 4.5:1 against white text) because LeadSync's `bg-primary text-white` is a button. */
+  --accent-rgb: 74 109 228;
+  --primary-brand: #4a6de4;
+  --primary-strong: #2f52c9;
+  --primary-fill: #2f52c9;
+  --primary-soft: rgb(var(--accent-rgb) / 0.14);
+  --on-primary: #ffffff;
+  --focus: #2f52c9;
+
+  /* Semantic colours */
+  --mint: #bfe8da;
+  --mint-ink: #176a4e;
+  --good: #1f9d6b;
+  --warm: #9a4709;
+  --warm-soft: rgb(245 158 11 / 0.16);
+  --danger-soft: rgb(244 63 94 / 0.12);
+
+  /* Chart series (Applekor palette) — ECharts reads these through components/charts/theme.ts */
+  --chart-1: #3d5fd6;
+  --chart-2: #21a595;
+  --chart-3: #7c6be6;
+  --chart-4: #e5536b;
+  --chart-5: #dd9a12;
+  --chart-6: #3fa7d6;
+  --chart-7: #c2569e;
+  --chart-8: #a3a3ab;
+  --chart-grid: rgb(120 120 128 / 0.16);
+  --chart-axis: rgb(120 120 128 / 0.32);
+
+  /* LeadSync token names → Studio palette (this is what restyles the whole dashboard) */
+  --background: var(--page-bg);
+  --foreground: var(--ink);
+  --muted: var(--ink-3);
+  --surface: rgb(255 255 255 / 0.78);
+  --surface-hover: rgb(255 255 255 / 0.95);
+  --surface-2: rgb(120 120 128 / 0.1);
+  --surface-solid: #ffffff;
+  --border: rgb(120 120 128 / 0.16);
+  --border-strong: rgb(120 120 128 / 0.28);
+  --primary: var(--primary-fill);
+  --primary-hover: color-mix(in srgb, var(--primary-fill) 86%, #000);
+  --accent: var(--chart-3);
+  --success: var(--good);
+  --danger: #c0262d;
+  --warning: var(--warm);
+
+  --font-studio: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+
+  font-family: var(--font-studio);
+  background: var(--page-bg);
+  color-scheme: light;
+}
+
+/* ---------- Dark: soft graphite ---------- */
+html:has(.studio-shell)[data-theme="dark"] {
+  --page-bg: #161617;
+  --orb-1: #2c62d6;
+  --orb-2: #6242c2;
+  --orb-3: #138073;
+  --orb-4: #9a5432;
+  --orb-5: #8a2f63;
+  --orb-o: calc(0.2 + var(--lq) * 0.32);
+  --glass-rgb: 46 46 54;
+  --card-rgb: 36 36 42;
+  --glass-a: calc(0.72 - var(--lq) * 0.4);
+  --glass-a-strong: calc(0.62 - var(--lq) * 0.44);
+  --glass-a-pop: calc(0.97 - var(--lq) * 0.06);
+  --glass-a-dense: calc(0.9 - var(--lq) * 0.14);
+  --glass-sat: calc(1.25 + var(--lq) * 0.45);
+  --rim-a: calc(0.14 + var(--lq) * 0.26);
+  --rim-b: calc(0.03 + var(--lq) * 0.07);
+  --glow-a: calc(var(--lq) * 0.07);
+  --glass-line: rgb(255 255 255 / calc(0.06 + var(--lq) * 0.06));
+  --spot-on: rgb(255 255 255 / calc(0.04 + var(--lq) * 0.04));
+  --lens-bg: rgb(255 255 255 / calc(0.17 - var(--lq) * 0.04));
+  --lens-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px -2px rgb(0 0 0 / 0.35);
+  --shadow-card: 0 1px 1px rgb(0 0 0 / 0.2), 0 8px 26px -10px rgb(0 0 0 / 0.5);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.25), 0 16px 36px -12px rgb(0 0 0 / 0.6);
+  --shadow-pop: 0 2px 8px rgb(0 0 0 / 0.3), 0 28px 60px -16px rgb(0 0 0 / 0.7);
+  --surface: rgb(255 255 255 / 0.07);
+  --surface-hover: rgb(255 255 255 / 0.11);
+  --surface-2: rgb(255 255 255 / 0.08);
+  --surface-solid: #232328;
+  --border: rgb(255 255 255 / 0.09);
+  --border-strong: rgb(255 255 255 / 0.17);
+  --ink: #f2f2f7;
+  --ink-2: #b4b4bb;
+  --ink-3: #a1a1aa;
+  --primary-brand: #6f8ff0;
+  --primary-strong: #9db5f6;
+  --primary-soft: rgb(var(--accent-rgb) / 0.24);
+  --focus: #9db5f6;
+  --mint: #2c5c4b;
+  --mint-ink: #7fd1b4;
+  --good: #4fd19b;
+  --warm: #f5b25a;
+  --warm-soft: rgb(245 158 11 / 0.18);
+  --danger-soft: rgb(244 63 94 / 0.18);
+  --danger: #f97066;
+  --chart-1: #6f8ff0;
+  --chart-2: #3cbfae;
+  --chart-3: #9a8cf0;
+  --chart-4: #f07185;
+  --chart-5: #e8b04a;
+  --chart-6: #6cc4ec;
+  --chart-7: #e07cc0;
+  --chart-8: #8e8e96;
+  --chart-grid: rgb(255 255 255 / 0.08);
+  --chart-axis: rgb(255 255 255 / 0.2);
+  color-scheme: dark;
+}
+
+/* Link-ish accent text needs the light tint on dark glass; fills keep the saturated colour. */
+html:has(.studio-shell)[data-theme="dark"] .text-primary {
+  color: var(--primary-strong);
+}
+
+/* ---------- High contrast ---------- */
+@media (prefers-contrast: more) {
+  html:has(.studio-shell) {
+    --border: rgb(24 32 43 / 0.45);
+    --border-strong: rgb(24 32 43 / 0.7);
+    --ink-2: #3a3a3c;
+    --ink-3: #3a3a3c;
+    --glass-a: 0.94;
+    --glass-a-strong: 0.94;
+  }
+}
+
+/* =====================================================================================================
+ * Data365 Studio look — base + components (dashboard only)
+ * ===================================================================================================== */
+html:has(.studio-shell) body {
+  /* Transparent so the fixed wallpaper (z-index -1) shows through; <html> paints the page colour. */
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+html:has(.studio-shell) :where(button, [role="button"], a, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+html:has(.studio-shell) ::selection {
+  background: var(--primary-soft);
+}
+html:has(.studio-shell) button {
+  cursor: pointer;
+}
+html:has(.studio-shell) button:disabled {
+  cursor: not-allowed;
+}
+
+/* ---------- Wallpaper: soft pastel orbs behind the glass ---------- */
+.wallpaper {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--page-bg);
+}
+.orb {
+  position: absolute;
+  opacity: var(--orb-o);
+}
+/* The blur is drawn as a Gaussian-edged radial gradient (no filter: blur), so it costs nothing per frame. */
+.orb::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--orb-blur) * -3);
+  background: radial-gradient(
+    circle closest-side,
+    color-mix(in srgb, var(--orb-c) 99%, transparent) calc(var(--orb-r) - 2.5 * var(--orb-blur)),
+    color-mix(in srgb, var(--orb-c) 93%, transparent) calc(var(--orb-r) - 1.5 * var(--orb-blur)),
+    color-mix(in srgb, var(--orb-c) 69%, transparent) calc(var(--orb-r) - 0.5 * var(--orb-blur)),
+    color-mix(in srgb, var(--orb-c) 50%, transparent) var(--orb-r),
+    color-mix(in srgb, var(--orb-c) 31%, transparent) calc(var(--orb-r) + 0.5 * var(--orb-blur)),
+    color-mix(in srgb, var(--orb-c) 7%, transparent) calc(var(--orb-r) + 1.5 * var(--orb-blur)),
+    transparent calc(var(--orb-r) + 3 * var(--orb-blur))
+  );
+}
+.orb.o1 { width: 52vmax; height: 52vmax; left: -14vmax; top: -18vmax; --orb-c: var(--orb-1); --orb-r: 26vmax; }
+.orb.o2 { width: 40vmax; height: 40vmax; right: -12vmax; top: -10vmax; --orb-c: var(--orb-2); --orb-r: 20vmax; }
+.orb.o3 { width: 46vmax; height: 46vmax; right: -10vmax; bottom: -20vmax; --orb-c: var(--orb-3); --orb-r: 23vmax; }
+.orb.o4 { width: 36vmax; height: 36vmax; left: 8vmax; bottom: -16vmax; --orb-c: var(--orb-4); --orb-r: 18vmax; }
+.orb.o5 { width: 26vmax; height: 26vmax; left: 34vmax; top: 24vh; --orb-c: var(--orb-5); --orb-r: 13vmax; opacity: calc(var(--orb-o) * 0.55); }
+/* The orbs never move: a moving backdrop would make every frosted surface above it redraw on every frame. */
+
+@layer components {
+  /* Translucent chrome: sidebar, top bar. */
+  .glass {
+    background-color: rgb(var(--glass-rgb) / var(--glass-a-strong));
+    background-image:
+      radial-gradient(300px circle at var(--mx, -999px) var(--my, -999px), var(--spot, transparent), transparent 62%),
+      linear-gradient(150deg, rgb(255 255 255 / var(--glow-a)) 0%, transparent 38%, transparent 70%, rgb(255 255 255 / calc(var(--glow-a) * 0.6)) 100%);
+    -webkit-backdrop-filter: blur(var(--glass-blur-panel)) saturate(var(--glass-sat));
+    backdrop-filter: blur(var(--glass-blur-panel)) saturate(var(--glass-sat));
+    border: 1px solid var(--glass-line);
+    box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 -1px 0 rgb(255 255 255 / var(--rim-b)), inset 0 0 calc(34px * var(--lq)) rgb(255 255 255 / var(--glow-a)), var(--shadow-card);
+  }
+  /* Menus, dialogs, toasts: denser so text is always easy to read. */
+  .glass-pop {
+    background-color: rgb(var(--glass-rgb) / var(--glass-a-pop));
+    background-image: linear-gradient(180deg, var(--glass-sheen), transparent 30%);
+    -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 12px)) saturate(var(--glass-sat));
+    backdrop-filter: blur(calc(var(--glass-blur) + 12px)) saturate(var(--glass-sat));
+    border: 1px solid var(--glass-line);
+    box-shadow: inset 0 1px 0 var(--glass-rim), var(--shadow-pop);
+  }
+  /*
+   * Content card: translucent layer, conic rim, sheen and a soft spotlight that follows the pointer.
+   * No backdrop blur: cards sit on the soft, already-blurred wallpaper, where a blur is invisible but makes the
+   * GPU redraw every card on every scroll frame. Surfaces that float over content keep their blur.
+   */
+  .panel {
+    position: relative;
+    isolation: isolate;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--glass-line);
+    box-shadow: inset 0 1px 0 var(--glass-rim), var(--shadow-card);
+  }
+  .panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background-color: rgb(var(--card-rgb) / var(--panel-a, var(--glass-a)));
+    background-image:
+      radial-gradient(380px circle at var(--mx, -999px) var(--my, -999px), var(--spot, transparent), transparent 62%),
+      linear-gradient(180deg, var(--glass-sheen), transparent 34%);
+  }
+  .panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.25px;
+    pointer-events: none;
+    background: conic-gradient(
+      from 215deg,
+      rgb(255 255 255 / var(--rim-a)) 0deg,
+      rgb(255 255 255 / var(--rim-b)) 60deg,
+      rgb(255 255 255 / 0) 120deg,
+      rgb(255 255 255 / calc(var(--rim-a) * 0.55)) 180deg,
+      rgb(255 255 255 / 0) 240deg,
+      rgb(255 255 255 / var(--rim-b)) 300deg,
+      rgb(255 255 255 / var(--rim-a)) 360deg
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    opacity: calc(0.35 + var(--lq) * 0.65);
+  }
+  /* Data-heavy content (tables, lists): denser glass so numbers stay sharp. */
+  .panel-dense,
+  .panel:has(ul, ol, table, dl) {
+    --panel-a: var(--glass-a-dense);
+  }
+  .panel .panel::before {
+    background-color: rgb(var(--card-rgb) / 0.4);
+  }
+  .panel .panel::after {
+    display: none;
+  }
+  .panel-soft {
+    border-radius: var(--radius-card);
+    border: 1px solid var(--glass-line);
+    background: rgb(var(--card-rgb) / var(--glass-a));
+    box-shadow: inset 0 1px 0 var(--glass-rim);
+  }
+  .card-hover {
+    transition: box-shadow 160ms, transform 320ms var(--ease-spring);
+  }
+  .card-hover:hover {
+    box-shadow: inset 0 1px 0 var(--glass-rim), var(--shadow-lift);
+    transform: translateY(-2px);
+  }
+  .card-hover:active {
+    transform: translateY(0) scale(0.985);
+    transition-duration: 90ms;
+  }
+  .pressable {
+    transition:
+      transform 260ms var(--ease-spring),
+      background-color 160ms var(--ease-calm),
+      box-shadow 160ms var(--ease-calm),
+      color 160ms var(--ease-calm),
+      opacity 160ms var(--ease-calm);
+  }
+  .pressable:active:not(:disabled) {
+    transform: scale(0.96);
+    transition-duration: 80ms;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* Filled (primary) buttons: glossy rim + soft accent glow, as in Studio's Button variant="primary". */
+  .btn-glass {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.22),
+      0 1px 2px rgb(0 0 0 / 0.08),
+      0 6px 16px -6px rgb(var(--accent-rgb, 99 102 241) / 0.6);
+  }
+  .btn-glass:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+  /* Field look shared by inputs, selects and textareas. */
+  .field {
+    background-color: var(--surface);
+    border: 1px solid var(--border-strong);
+    transition: border-color 160ms, box-shadow 160ms, background-color 160ms;
+  }
+  .field:hover {
+    border-color: color-mix(in srgb, var(--border-strong) 60%, var(--ink-3));
+  }
+  .field:focus {
+    background-color: var(--surface-hover);
+  }
+  /* Consistent rounded selects in every engine (WebKit draws native ones square). */
+  .select-chevron {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a8291' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    background-size: 1rem;
+    padding-inline-end: 2.1rem;
+    text-overflow: ellipsis;
+  }
+  /* fill-mode "backwards" (not "both"): once an entrance animation ends it must leave no transform behind, or the
+   * element stays the containing block of `position: fixed` descendants and inline modals render inside it. */
+  .fade-in { animation: fade-in 220ms var(--ease-calm) backwards; }
+  .rise-in { animation: rise-in 280ms var(--ease-calm) backwards; }
+  .page-in { animation: page-rise 320ms var(--ease-calm) backwards; }
+  .stagger > * { animation: rise-in 360ms var(--ease-calm) backwards; }
+  .stagger > *:nth-child(2) { animation-delay: 40ms; }
+  .stagger > *:nth-child(3) { animation-delay: 80ms; }
+  .stagger > *:nth-child(4) { animation-delay: 120ms; }
+  .stagger > *:nth-child(n + 5) { animation-delay: 160ms; }
+
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum", "ss01";
+  }
+  .eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  /* Thin share bar. --v is 0..1. */
+  .meter {
+    position: relative;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+  .meter > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: calc(var(--v, 0) * 100%);
+    border-radius: inherit;
+    background: var(--bar, var(--primary-brand));
+    transition: width 700ms var(--ease-calm);
+  }
+
+  /* Status dot with a soft glow: data-s = ok | sync | warn | off | error */
+  .status-dot {
+    position: relative;
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--dot, #34c759);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot, #34c759) 22%, transparent), 0 0 10px color-mix(in srgb, var(--dot, #34c759) 70%, transparent);
+  }
+  .status-dot[data-s="ok"] { --dot: #30d158; }
+  .status-dot[data-s="sync"] { --dot: #0a84ff; }
+  .status-dot[data-s="warn"] { --dot: #ffb340; }
+  .status-dot[data-s="error"] { --dot: #ff453a; }
+  .status-dot[data-s="off"] { --dot: #8e8e93; box-shadow: none; }
+
+  /* Data tables */
+  .data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.875rem;
+  }
+  .data-table th {
+    padding: 0.5rem 0.75rem;
+    text-align: start;
+    font-size: 0.6875rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    background: rgb(var(--card-rgb) / 0.86);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .data-table td {
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .data-table tbody tr {
+    transition: background-color 120ms;
+  }
+  .data-table tbody tr:hover {
+    background: var(--surface-2);
+  }
+  .data-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .data-table .r {
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+  }
+  .data-table th:first-child,
+  .data-table td:first-child {
+    padding-inline-start: 1.25rem;
+  }
+  .data-table th:last-child,
+  .data-table td:last-child {
+    padding-inline-end: 1.25rem;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    border-radius: 12px;
+    background: linear-gradient(90deg, var(--surface-2) 0%, color-mix(in srgb, var(--surface-2) 40%, rgb(255 255 255 / 0.5)) 50%, var(--surface-2) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
+  }
+}
+
+/* ---------- Coloured icon tiles and KPI cards ---------- */
+.tile-blue { --tile: 52 120 246; }
+.tile-orange { --tile: 244 146 32; }
+.tile-green { --tile: 52 186 94; }
+.tile-indigo { --tile: 92 92 214; }
+.tile-purple { --tile: 168 88 214; }
+.tile-teal { --tile: 48 172 196; }
+.tile-mint { --tile: 20 186 176; }
+.tile-pink { --tile: 232 76 128; }
+.tile-yellow { --tile: 232 180 20; }
+.tile-gray { --tile: 136 136 144; }
+.tile-red { --tile: 229 72 77; }
+.tile-cyan { --tile: 50 173 230; }
+.tile-accent { --tile: var(--accent-rgb); }
+
+.icon-tile {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #fff;
+  background:
+    radial-gradient(120% 80% at 30% 0%, rgb(255 255 255 / 0.45), transparent 55%),
+    linear-gradient(160deg, color-mix(in srgb, rgb(var(--tile)) 72%, #fff) 0%, rgb(var(--tile)) 70%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 -1px 1px rgb(0 0 0 / 0.12), 0 6px 14px -4px rgb(var(--tile) / 0.6);
+  transition: transform 500ms var(--ease-spring);
+}
+.group:hover .icon-tile.tile-wiggle {
+  transform: scale(1.08) rotate(-4deg);
+}
+.kpi-glow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgb(var(--tile) / calc(0.1 + var(--lq) * 0.16)), transparent 62%),
+    radial-gradient(90% 70% at 100% 100%, rgb(var(--tile) / calc(0.06 + var(--lq) * 0.1)), transparent 70%);
+}
+.kpi-mark {
+  position: absolute;
+  right: -10px;
+  bottom: -12px;
+  width: 84px;
+  height: 84px;
+  color: rgb(var(--tile));
+  opacity: calc(0.07 + var(--lq) * 0.06);
+  transform: rotate(-12deg);
+  transition: transform 600ms var(--ease-calm), opacity 400ms var(--ease-calm);
+  pointer-events: none;
+}
+.group:hover .kpi-mark {
+  transform: rotate(-4deg) scale(1.08) translateY(-4px);
+  opacity: calc(0.11 + var(--lq) * 0.08);
+}
+.kpi-label {
+  color: color-mix(in srgb, rgb(var(--tile)) 52%, #1d1d1f);
+}
+html[data-theme="dark"] .kpi-label {
+  color: color-mix(in srgb, rgb(var(--tile)) 62%, #ffffff);
+}
+
+/* ---------- Sliding glass lens (segmented controls, nav) ---------- */
+.lens {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  background: var(--lens-bg);
+  box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 0.5px rgb(255 255 255 / calc(var(--lq) * 0.5)), var(--lens-shadow);
+  transition:
+    transform 420ms var(--ease-spring),
+    width 420ms var(--ease-spring),
+    height 420ms var(--ease-spring),
+    opacity 160ms;
+}
+
+/* ---------- Odometer: digits roll into place ---------- */
+.odo-d {
+  display: inline-block;
+  position: relative;
+  clip-path: inset(0 -0.2em);
+}
+.odo-d::after {
+  content: "0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9\A 0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  white-space: pre;
+  text-align: center;
+  line-height: inherit;
+  -webkit-text-fill-color: currentColor;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .odo-d {
+    --odo-delay: calc(120ms + var(--i, 0) * 70ms);
+    --odo-dur: calc(1000ms + var(--i, 0) * 90ms);
+    animation: odo-hide calc(var(--odo-delay) + var(--odo-dur)) linear;
+  }
+  .odo-d::after {
+    animation: odo-roll var(--odo-dur) cubic-bezier(0.2, 1.14, 0.32, 1) var(--odo-delay) backwards;
+  }
+}
+@keyframes odo-hide {
+  from, to {
+    -webkit-text-fill-color: transparent;
+    -webkit-mask-image: linear-gradient(transparent 0, #000 22%, #000 78%, transparent 100%);
+    mask-image: linear-gradient(transparent 0, #000 22%, #000 78%, transparent 100%);
+  }
+}
+@keyframes odo-roll {
+  from { opacity: 1; visibility: visible; transform: translateY(0); }
+  to { opacity: 1; visibility: visible; transform: translateY(calc(-1lh * (10 + var(--d)))); }
+}
+
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(10px); } }
+@keyframes page-rise { from { opacity: 0; transform: translateY(8px) scale(0.995); } }
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -20% 0; }
+}
+
+/* Sparkline draw-in */
+@media (prefers-reduced-motion: no-preference) {
+  .spark-reveal {
+    animation: spark-reveal 1100ms var(--ease-calm) both;
+  }
+}
+@keyframes spark-reveal {
+  from { width: 0; }
+}
+
+/* ---------- Pointer spotlight (set by MotionLayer) ---------- */
+@media (hover: hover) and (pointer: fine) {
+  .panel:hover,
+  .glass:hover {
+    --spot: var(--spot-on);
+  }
+  .panel .panel:not(:hover) {
+    --spot: transparent;
+  }
+}
+
+/* ---------- ECharts glass tooltip (className set in components/charts/theme.ts) ---------- */
+.echarts-glass:not([style*="position"]) {
+  display: none !important;
+}
+.echarts-glass {
+  border-radius: 16px !important;
+  padding: 10px 12px !important;
+  min-width: 160px;
+  background-color: rgb(var(--glass-rgb) / var(--glass-a-pop)) !important;
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 12px)) saturate(var(--glass-sat));
+  backdrop-filter: blur(calc(var(--glass-blur) + 12px)) saturate(var(--glass-sat));
+  border: 1px solid var(--glass-line) !important;
+  box-shadow: inset 0 1px 0 var(--glass-rim), var(--shadow-pop) !important;
+  color: var(--ink) !important;
+  font-size: 12px;
+}
+.echarts-glass .et-title { font-weight: 650; margin-bottom: 6px; color: var(--ink); }
+.echarts-glass .et-row { display: flex; align-items: center; gap: 8px; line-height: 1.7; }
+.echarts-glass .et-dot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+.echarts-glass .et-label { color: var(--ink-2); flex: 1; }
+.echarts-glass .et-val { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+.echarts-glass .et-foot { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); color: var(--ink-3); }
+
+/* ---------- Reduced transparency / no blur support: solid surfaces ---------- */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-pop,
+  .panel::before {
+    background: var(--surface-solid);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-pop,
+  .panel::before {
+    background: var(--surface-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html:has(.studio-shell) *,
+  html:has(.studio-shell) *::before,
+  html:has(.studio-shell) *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
 }

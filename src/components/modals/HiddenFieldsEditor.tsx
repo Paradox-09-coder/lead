@@ -33,7 +33,7 @@ export function rowsToInput(rows: ExtraFieldRow[]): HiddenFieldInput[] {
 }
 
 const INPUT_CLASS =
-  "mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50";
+  "mt-1.5 w-full field rounded-[14px] px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50";
 
 // A field that takes several values can be picked in more than one row.
 function isRepeatable(field: CrmField): boolean {
@@ -155,7 +155,7 @@ export function HiddenFieldsEditor({
           disabled={!targetId || crm.isLoadingStages}
           allowEmpty
         >
-          <option value="" className="bg-surface">
+          <option value="" className="bg-surface-solid">
             {!targetId
               ? t("integrationsPage.stageNeedTarget")
               : crm.isLoadingStages
@@ -163,7 +163,7 @@ export function HiddenFieldsEditor({
                 : t("integrationsPage.stageDefault")}
           </option>
           {crm.stages.map((stage) => (
-            <option key={stage.id} value={stage.id} className="bg-surface">
+            <option key={stage.id} value={stage.id} className="bg-surface-solid">
               {stage.name}
             </option>
           ))}
@@ -192,11 +192,11 @@ export function HiddenFieldsEditor({
             searchPlaceholder={t("integrationsPage.fieldsSearch")}
             noResultsLabel={t("integrationsPage.fieldsNoResults")}
               >
-            <option value="" className="bg-surface">
+            <option value="" className="bg-surface-solid">
               {crm.isLoadingSources ? t("common.loading") : t("integrationsPage.sourceFieldDefault")}
             </option>
             {crm.sources.map((source) => (
-              <option key={source.id} value={source.id} className="bg-surface">
+              <option key={source.id} value={source.id} className="bg-surface-solid">
                 {source.name}
               </option>
             ))}
@@ -285,7 +285,7 @@ export function HiddenFieldsEditor({
         </div>
       )}
 
-      <label className="flex items-center justify-between rounded-md border border-border px-4 py-3">
+      <label className="flex items-center justify-between rounded-[14px] border border-border px-4 py-3">
         <span className="text-sm">{t("integrationsPage.duplicateCheck")}</span>
         <button
           type="button"

@@ -1,7 +1,9 @@
-import { Calendar, CalendarDays, CalendarRange } from "lucide-react";
+import { Calendar, CalendarDays, CalendarRange, ChartColumn, Gauge } from "lucide-react";
 import { ChecklistCard } from "@/components/dashboard/ChecklistCard";
 import { StatTile } from "@/components/dashboard/StatTile";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { Card, Meter, PageHeader, type TileColor } from "@/components/ui/glass";
+import { LeadsTrendChart } from "@/components/charts/LeadsTrendChart";
 import type { ActivityItem } from "@/lib/mock-data";
 import { getT } from "@/i18n/server";
 import { getSessionUserId } from "@/lib/server-session";
@@ -16,6 +18,7 @@ const EMPTY_STATS: HomeStats = {
   week: { total: 0, delivered: 0 },
   month: { total: 0, delivered: 0 },
   recent: [],
+  daily: [],
   hasAccountConnection: false,
   hasIntegration: false,
 };
@@ -42,10 +45,10 @@ export default async function DashboardHomePage() {
       minute: "2-digit",
     });
 
-  const periods = [
-    { icon: Calendar, labelKey: "dashboardHome.statToday", stat: stats.today },
-    { icon: CalendarDays, labelKey: "dashboardHome.statWeek", stat: stats.week },
-    { icon: CalendarRange, labelKey: "dashboardHome.statMonth", stat: stats.month },
+  const periods: { icon: typeof Calendar; labelKey: string; stat: HomeStats["today"]; tile: TileColor }[] = [
+    { icon: Calendar, labelKey: "dashboardHome.statToday", stat: stats.today, tile: "blue" },
+    { icon: CalendarDays, labelKey: "dashboardHome.statWeek", stat: stats.week, tile: "teal" },
+    { icon: CalendarRange, labelKey: "dashboardHome.statMonth", stat: stats.month, tile: "indigo" },
   ];
 
   const activity: ActivityItem[] = stats.recent.map((lead) => {
@@ -62,22 +65,20 @@ export default async function DashboardHomePage() {
 
   return (
     <div>
-      <div>
-        <h1 className="text-2xl font-semibold">{t("dashboardHome.title")}</h1>
-        <p className="mt-1 text-sm text-muted">{t("dashboardHome.subtitle")}</p>
-      </div>
+      <PageHeader title={t("dashboardHome.title")} subtitle={t("dashboardHome.subtitle")} />
 
-      <div className="mt-6 grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
           <ChecklistCard
             hasAccountConnection={stats.hasAccountConnection}
             hasIntegration={stats.hasIntegration}
           />
 
-          <div className="grid sm:grid-cols-3 gap-4">
-            {periods.map(({ icon, labelKey, stat }) => (
+          <div className="stagger grid gap-3 sm:grid-cols-3 sm:gap-4">
+            {periods.map(({ icon, labelKey, stat, tile }) => (
               <StatTile
                 key={labelKey}
+                tile={tile}
                 icon={icon}
                 label={t(labelKey)}
                 value={stat.total.toLocaleString("en-US")}
@@ -87,25 +88,43 @@ export default async function DashboardHomePage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-surface p-6">
-          <p className="text-sm text-muted">{t("dashboardHome.planLabel")}</p>
-          <p className="mt-1 font-semibold">{plan ? t(`pricing.tier.${plan.id}Name`) : t("dashboardHome.planFree")}</p>
-          <p className="mt-1 text-xs text-muted">
+        <Card
+          icon={Gauge}
+          tile="accent"
+          title={plan ? t(`pricing.tier.${plan.id}Name`) : t("dashboardHome.planFree")}
+          subtitle={t("dashboardHome.planLabel")}
+          className="self-start"
+        >
+          <p className="text-xs text-ink-3">
             {quota ? t("dashboardHome.planQuota", { quota: quota.toLocaleString("en-US") }) : "—"}
           </p>
-          <div className="mt-4 h-2 rounded-full bg-surface-hover overflow-hidden">
-            <div className="h-full bg-primary" style={{ width: `${usagePercent}%` }} />
-          </div>
-          <p className="mt-2 text-xs text-muted">
+          <Meter value={usagePercent / 100} className="mt-4" />
+          <p className="num mt-2 text-xs text-ink-2">
             {t("dashboardHome.planUsage", {
               used: monthlyLeads.toLocaleString("en-US"),
               total: quota ? quota.toLocaleString("en-US") : "∞",
             })}
           </p>
-        </div>
+        </Card>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-4">
+        <Card title={t("dashboardHome.trendTitle")} icon={ChartColumn} tile="blue">
+          <LeadsTrendChart
+            days={stats.daily}
+            height={240}
+            ariaLabel={t("dashboardHome.trendTitle")}
+            labels={{
+              delivered: t("reports.legendDelivered"),
+              failed: t("reports.legendFailed"),
+              waiting: t("reports.legendWaiting"),
+              total: t("reports.colTotal"),
+            }}
+          />
+        </Card>
+      </div>
+
+      <div className="mt-4">
         <ActivityFeed items={activity} />
       </div>
     </div>

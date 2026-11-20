@@ -52,7 +52,7 @@ export default async function LeadDetailPage({
 
       <div className="mt-4 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">{t("leadTempo.detailsTitle")}</h1>
+          <h1 className="text-[1.75rem] leading-[1.1] font-bold tracking-[-0.022em] text-ink sm:text-[2.125rem]">{t("leadTempo.detailsTitle")}</h1>
           {lead.leadgenId && <p className="mt-1 text-sm text-muted font-mono">{lead.leadgenId}</p>}
         </div>
         <StatusBadge status={lead.status} />

@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Sets <html data-theme="light|dark"> before the first paint (see "Preventing flash before hydration" in the
+// Next.js docs). The Studio look in globals.css only applies inside the dashboard, so other pages ignore it.
+// Preference lives in localStorage under "ls-theme": "light" | "dark" | "system" (default).
+const THEME_SCRIPT = `(function(){try{var p=localStorage.getItem("ls-theme");var d=p==="dark"||((p===null||p==="system")&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.setAttribute("data-theme",d?"dark":"light")}catch(e){}})()`;
+
 export const metadata: Metadata = {
   title: "LeadSync — Facebook leads to your CRM",
   description:
@@ -36,7 +41,14 @@ export default async function RootLayout({
 }>) {
   const locale = await getLocale();
   return (
-    <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html
+      lang={locale}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <LocaleProvider locale={locale}>
           <UpdateBanner />

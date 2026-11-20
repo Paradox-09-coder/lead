@@ -120,6 +120,29 @@ interface FacetResult {
   errors: Array<{ _id: string; total: number; last: Date }>;
 }
 
+// Leads per Tashkent day for the last `days` days (today included), with empty days filled in so a chart's time
+// axis is continuous. The dashboard home uses it for its trend card.
+export async function getDailyCounts(userId: string, days: number): Promise<DayPoint[]> {
+  const today = startOfTashkentDay(Date.now());
+  const since = new Date(today - (days - 1) * DAY_MS);
+  const rows = await Lead.aggregate<Group<string>>([
+    { $match: { user: new mongoose.Types.ObjectId(userId), createdAt: { $gte: since } } },
+    {
+      $group: {
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: REPORT_TIMEZONE } },
+        ...COUNT_ACCUMULATORS,
+      },
+    },
+  ]);
+  const byDate = new Map(rows.map((row) => [row._id, counts(row)]));
+  const result: DayPoint[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const date = tashkentDateKey(today - i * DAY_MS);
+    result.push({ date, ...(byDate.get(date) ?? EMPTY) });
+  }
+  return result;
+}
+
 export async function getLeadReport(userId: string, period: ReportPeriod): Promise<LeadReport> {
   const since = periodStart(period);
   const match: Record<string, unknown> = { user: new mongoose.Types.ObjectId(userId) };

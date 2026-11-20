@@ -28,8 +28,8 @@ export default async function OrdersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">{t("orders.title")}</h1>
-      <p className="mt-1 text-sm text-muted">
+      <h1 className="text-[1.75rem] leading-[1.1] font-bold tracking-[-0.022em] text-ink sm:text-[2.125rem]">{t("orders.title")}</h1>
+      <p className="mt-1.5 text-[0.9375rem] text-ink-2">
         {t("orders.currentPlan")}{" "}
         <span className="text-foreground font-medium">
           {currentPlan ? t(`pricing.tier.${currentPlan.id}Name`) : "—"}
@@ -46,7 +46,7 @@ export default async function OrdersPage() {
         {PAID_PLAN_IDS.map((id) => {
           const plan = getPlan(id)!;
           return (
-            <div key={id} className="rounded-xl border border-border bg-surface p-5 flex flex-col">
+            <div key={id} className="panel p-5 flex flex-col">
               <p className="font-semibold">{t(`pricing.tier.${id}Name`)}</p>
               <p className="mt-1 text-2xl font-semibold">
                 {plan.amount.toLocaleString("en-US")}{" "}

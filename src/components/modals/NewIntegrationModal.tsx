@@ -185,7 +185,7 @@ export function NewIntegrationModal({
               onChange={(event) => setName(event.target.value)}
               maxLength={120}
               placeholder={t("integrationsPage.formNamePlaceholder")}
-              className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
+              className="mt-1.5 w-full field rounded-[14px] px-3 py-2 text-sm outline-none focus:border-primary"
             />
           </div>
 
@@ -197,11 +197,11 @@ export function NewIntegrationModal({
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <Select value={facebookConnectionId} onChange={(value) => handleFacebookConnectionChange(value)}>
-                    <option value="" className="bg-surface">
+                    <option value="" className="bg-surface-solid">
                       {t("integrationsPage.fbPagePlaceholder")}
                     </option>
                     {facebookConnections.map((c) => (
-                      <option key={c._id} value={c._id} className="bg-surface">
+                      <option key={c._id} value={c._id} className="bg-surface-solid">
                         Facebook — {c.label}
                       </option>
                     ))}
@@ -213,11 +213,11 @@ export function NewIntegrationModal({
                     onChange={(value) => handleFormChange(value)}
                     disabled={!facebookConnectionId || isLoadingForms}
                   >
-                    <option value="" className="bg-surface">
+                    <option value="" className="bg-surface-solid">
                       {isLoadingForms ? t("common.loading") : t("integrationsPage.formPlaceholder")}
                     </option>
                     {forms.map((f) => (
-                      <option key={f.id} value={f.id} className="bg-surface">
+                      <option key={f.id} value={f.id} className="bg-surface-solid">
                         {f.name}
                       </option>
                     ))}
@@ -250,11 +250,11 @@ export function NewIntegrationModal({
               {t("integrationsPage.targetLabel")} <span className="text-danger">*</span>
             </label>
             <Select value={target} onChange={(value) => handleTargetChange(value)}>
-              <option value="" className="bg-surface">
+              <option value="" className="bg-surface-solid">
                 {t("integrationsPage.targetPlaceholder")}
               </option>
               {crmConnections.map((c) => (
-                <option key={c._id} value={c._id} className="bg-surface">
+                <option key={c._id} value={c._id} className="bg-surface-solid">
                   {platformName(c.platform)} — {c.label}
                 </option>
               ))}
@@ -287,7 +287,7 @@ export function NewIntegrationModal({
             <button
               onClick={handleSave}
               disabled={isSaving || !canSave}
-              className="rounded-md bg-primary hover:bg-primary-hover disabled:opacity-50 text-white px-5 py-2 text-sm font-medium transition-colors"
+              className="pressable btn-glass rounded-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-white px-5 py-2 text-sm font-medium transition-colors"
             >
               {isSaving ? t("integrationsPage.saving") : t("integrationsPage.save")}
             </button>

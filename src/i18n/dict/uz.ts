@@ -209,9 +209,14 @@ export const uz = {
     notifications: "Bildirishnomalar",
     menu: "Menyu",
     logout: "Chiqish",
+    theme: "Mavzu",
+    themeSystem: "Tizim mavzusi",
+    themeLight: "Yorug'",
+    themeDark: "Qorong'i",
   },
 
   dashboardHome: {
+    trendTitle: "Oxirgi 14 kun",
     title: "Bosh sahifa",
     subtitle: "Sizning biznesingiz statistikasi",
     planLabel: "Tarif rejasi",

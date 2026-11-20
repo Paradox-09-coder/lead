@@ -43,12 +43,12 @@ export default function IntegrationsPage() {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">{t("integrationsPage.title")}</h1>
-          <p className="mt-1 text-sm text-muted">{t("integrationsPage.subtitle")}</p>
+          <h1 className="text-[1.75rem] leading-[1.1] font-bold tracking-[-0.022em] text-ink sm:text-[2.125rem]">{t("integrationsPage.title")}</h1>
+          <p className="mt-1.5 text-[0.9375rem] text-ink-2">{t("integrationsPage.subtitle")}</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors"
+          className="flex items-center gap-2 pressable btn-glass rounded-full bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors"
         >
           <Plus className="size-4" />
           {t("integrationsPage.newIntegration")}
@@ -66,7 +66,7 @@ export default function IntegrationsPage() {
           <p className="mt-1 text-sm text-muted max-w-sm">{t("integrationsPage.emptySub")}</p>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="mt-5 flex items-center gap-2 rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors"
+            className="mt-5 flex items-center gap-2 pressable btn-glass rounded-full bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors"
           >
             <Plus className="size-4" />
             {t("integrationsPage.addFirst")}
@@ -75,7 +75,7 @@ export default function IntegrationsPage() {
       ) : (
         <div className="mt-6 grid sm:grid-cols-2 gap-4">
           {integrations.map((integration) => (
-            <div key={integration._id} className="rounded-xl border border-border bg-surface p-5 min-w-0">
+            <div key={integration._id} className="panel p-5 min-w-0">
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium truncate">{integration.name}</p>
                 <div className="flex items-center gap-1 shrink-0">

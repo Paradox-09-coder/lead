@@ -25,7 +25,7 @@ function FormCard({ form, onDelete }: { form: WebFormItem; onDelete: (id: string
   }
 
   return (
-    <div className="rounded-xl border border-border bg-surface p-5 min-w-0">
+    <div className="panel p-5 min-w-0">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <p className="font-medium truncate">{form.name}</p>
@@ -44,7 +44,7 @@ function FormCard({ form, onDelete }: { form: WebFormItem; onDelete: (id: string
       <p className="mt-1 text-xs text-muted">
         {form.target} · {form.createdAt.slice(0, 10)}
       </p>
-      <div className="mt-4 flex items-center gap-2 rounded-md border border-border px-3 py-2">
+      <div className="mt-4 flex items-center gap-2 rounded-[14px] border border-border px-3 py-2">
         <code className="flex-1 min-w-0 truncate text-xs text-muted">{form.url}</code>
         <button
           onClick={handleCopy}
@@ -85,12 +85,12 @@ export function WebFormsManager() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">{t("webForms.title")}</h1>
-          <p className="mt-1 text-sm text-muted">{t("webForms.subtitle")}</p>
+          <h1 className="text-[1.75rem] leading-[1.1] font-bold tracking-[-0.022em] text-ink sm:text-[2.125rem]">{t("webForms.title")}</h1>
+          <p className="mt-1.5 text-[0.9375rem] text-ink-2">{t("webForms.subtitle")}</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="self-start sm:self-auto flex items-center gap-2 rounded-md bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors"
+          className="self-start sm:self-auto flex items-center gap-2 pressable btn-glass rounded-full bg-primary hover:bg-primary-hover text-white px-4 py-2 text-sm font-medium transition-colors"
         >
           <Plus className="size-4" />
           {t("webForms.newForm")}

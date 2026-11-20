@@ -1,19 +1,27 @@
 import Link from "next/link";
-import { CheckCircle2, Copy, Hourglass, Inbox, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  ChartColumn,
+  ChartPie,
+  Copy,
+  FileInput,
+  Hourglass,
+  Inbox,
+  Link2,
+  Megaphone,
+  TriangleAlert,
+  XCircle,
+} from "lucide-react";
 import { connectDB } from "@/lib/mongodb";
 import { getSessionUserId } from "@/lib/server-session";
 import { getT } from "@/i18n/server";
 import { translateMessage } from "@/i18n/messages";
 import { StatTile } from "@/components/dashboard/StatTile";
+import { Badge, Card, EmptyState, Meter, PageHeader, SegmentedLinks } from "@/components/ui/glass";
+import { LeadsTrendChart } from "@/components/charts/LeadsTrendChart";
+import { SourceDonut } from "@/components/charts/SourceDonut";
 import { leadSourceKey } from "@/lib/public-lead";
-import {
-  REPORT_PERIODS,
-  REPORT_TIMEZONE,
-  getLeadReport,
-  type Counts,
-  type DayPoint,
-  type ReportPeriod,
-} from "@/lib/reports";
+import { REPORT_PERIODS, REPORT_TIMEZONE, getLeadReport, type Counts, type ReportPeriod } from "@/lib/reports";
 
 const PLATFORM_NAMES: Record<string, string> = { bitrix24: "Bitrix24", amocrm: "amoCRM / Kommo" };
 
@@ -25,61 +33,21 @@ const PERIOD_LABEL_KEYS: Record<ReportPeriod, string> = {
   all: "reports.periodAll",
 };
 
+// Same colour per source as the donut (SourceDonut.tsx): Facebook blue, web form violet, API amber.
 const SOURCE_COLORS: Record<string, string> = {
-  facebook: "bg-[#1877F2]",
-  form: "bg-accent",
-  api: "bg-warning",
+  facebook: "var(--chart-1)",
+  form: "var(--chart-3)",
+  api: "var(--chart-5)",
 };
 
 const percent = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-xl border border-border bg-surface p-5">
-      <h2 className="font-semibold">{title}</h2>
-      <div className="mt-4">{children}</div>
-    </section>
-  );
-}
 
 function SuccessBar({ counts }: { counts: Counts }) {
   const rate = percent(counts.success, counts.total);
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface-hover">
-        <div className="h-full bg-success" style={{ width: `${rate}%` }} />
-      </div>
-      <span className="text-xs text-muted">{rate}%</span>
-    </div>
-  );
-}
-
-function DailyChart({ days, tooltip }: { days: DayPoint[]; tooltip: (day: DayPoint) => string }) {
-  const max = Math.max(1, ...days.map((d) => d.total));
-  const middle = days[Math.floor(days.length / 2)];
-  return (
-    <div>
-      <div className="flex h-40 items-end gap-px">
-        {days.map((day) => {
-          const other = day.total - day.success - day.failed;
-          return (
-            <div key={day.date} title={tooltip(day)} className="flex h-full min-w-0 flex-1 flex-col justify-end">
-              {day.total > 0 && (
-                <div className="flex w-full flex-col overflow-hidden rounded-t-sm" style={{ height: `${(day.total / max) * 100}%` }}>
-                  {other > 0 && <div className="bg-primary" style={{ flex: other }} />}
-                  {day.failed > 0 && <div className="bg-danger" style={{ flex: day.failed }} />}
-                  {day.success > 0 && <div className="bg-success" style={{ flex: day.success }} />}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      <div className="mt-2 flex justify-between text-xs text-muted">
-        <span>{days[0]?.date}</span>
-        {days.length > 6 && <span>{middle?.date}</span>}
-        <span>{days[days.length - 1]?.date}</span>
-      </div>
+      <Meter value={rate / 100} color="var(--good)" className="w-16" />
+      <span className="num text-xs text-ink-3">{rate}%</span>
     </div>
   );
 }
@@ -109,198 +77,218 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   return (
     <div>
-      <div>
-        <h1 className="text-2xl font-semibold">{t("reports.title")}</h1>
-        <p className="mt-1 text-sm text-muted">{t("reports.subtitle")}</p>
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        {REPORT_PERIODS.map((value) => (
-          <Link
-            key={value}
-            href={value === "30" ? "/dashboard/reports" : `/dashboard/reports?period=${value}`}
-            className={`text-sm rounded-md px-3 py-1.5 border transition-colors ${
-              period === value ? "border-primary bg-primary text-white" : "border-border hover:bg-surface-hover"
-            }`}
-          >
-            {t(PERIOD_LABEL_KEYS[value])}
-          </Link>
-        ))}
-      </div>
+      <PageHeader
+        title={t("reports.title")}
+        subtitle={t("reports.subtitle")}
+        actions={
+          <SegmentedLinks
+            label={t("reports.title")}
+            value={period}
+            options={REPORT_PERIODS.map((value) => ({
+              value,
+              label: t(PERIOD_LABEL_KEYS[value]),
+              href: value === "30" ? "/dashboard/reports" : `/dashboard/reports?period=${value}`,
+            }))}
+          />
+        }
+      />
 
       {!report || !totals || totals.total === 0 ? (
-        <p className="mt-8 text-muted">{t("reports.empty")}</p>
+        <Card>
+          <EmptyState icon={Inbox} title={t("reports.empty")} />
+        </Card>
       ) : (
-        <div className="mt-6 space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatTile icon={Inbox} label={t("reports.statTotal")} value={number(totals.total)} />
+        <div className="space-y-4">
+          <div className="stagger grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <StatTile tile="blue" icon={Inbox} label={t("reports.statTotal")} value={number(totals.total)} />
             <StatTile
+              tile="green"
               icon={CheckCircle2}
               label={t("reports.statDelivered")}
               value={number(totals.success)}
               trend={t("reports.statRate", { percent: percent(totals.success, totals.total) })}
             />
-            <StatTile icon={XCircle} label={t("reports.statFailed")} value={number(totals.failed)} />
-            <StatTile icon={Hourglass} label={t("reports.statWaiting")} value={number(waiting)} />
+            <StatTile tile="pink" icon={XCircle} label={t("reports.statFailed")} value={number(totals.failed)} />
+            <StatTile tile="orange" icon={Hourglass} label={t("reports.statWaiting")} value={number(waiting)} />
           </div>
           {totals.duplicates > 0 && (
-            <p className="flex items-center gap-2 text-sm text-muted">
+            <p className="flex items-center gap-2 px-1 text-sm text-ink-2">
               <Copy className="size-4" />
               {t("reports.duplicatesNote", { count: number(totals.duplicates) })}
             </p>
           )}
 
-          <Section title={t("reports.chartTitle")}>
-            <DailyChart
-              days={report.byDay}
-              tooltip={(day) =>
-                t("reports.chartTooltip", {
-                  date: day.date,
-                  total: day.total,
-                  success: day.success,
-                  failed: day.failed,
-                })
-              }
-            />
-            <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted">
-              <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-success" />{t("reports.legendDelivered")}</span>
-              <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-danger" />{t("reports.legendFailed")}</span>
-              <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-primary" />{t("reports.legendWaiting")}</span>
-            </div>
-          </Section>
+          <div className="grid gap-4 xl:grid-cols-3">
+            <Card title={t("reports.chartTitle")} icon={ChartColumn} tile="blue" className="xl:col-span-2">
+              <LeadsTrendChart
+                days={report.byDay}
+                height={310}
+                ariaLabel={t("reports.chartTitle")}
+                labels={{
+                  delivered: t("reports.legendDelivered"),
+                  failed: t("reports.legendFailed"),
+                  waiting: t("reports.legendWaiting"),
+                  total: t("reports.colTotal"),
+                }}
+              />
+            </Card>
 
-          <Section title={t("reports.sourceTitle")}>
-            <div className="space-y-3">
-              {report.bySource.map((row) => (
-                <div key={row.source}>
-                  <div className="flex items-baseline justify-between text-sm">
-                    <span>{t(leadSourceKey(row.source))}</span>
-                    <span className="text-muted">
-                      {number(row.total)} · {percent(row.total, totals.total)}%
-                    </span>
-                  </div>
-                  <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-hover">
-                    <div
-                      className={`h-full ${SOURCE_COLORS[row.source] ?? "bg-primary"}`}
-                      style={{ width: `${percent(row.total, totals.total)}%` }}
+            <Card title={t("reports.sourceTitle")} icon={ChartPie} tile="purple">
+              <SourceDonut
+                legend={false}
+                height={190}
+                ariaLabel={t("reports.sourceTitle")}
+                totalLabel={t("reports.colTotal")}
+                items={report.bySource.map((row) => ({
+                  key: row.source,
+                  name: t(leadSourceKey(row.source)),
+                  value: row.total,
+                }))}
+              />
+              <ul className="mt-3 space-y-3">
+                {report.bySource.map((row) => (
+                  <li key={row.source}>
+                    <div className="flex items-baseline justify-between gap-3 text-sm">
+                      <span className="flex min-w-0 items-center gap-2 text-ink">
+                        <i
+                          className="size-2.5 shrink-0 rounded-[3px]"
+                          style={{ background: SOURCE_COLORS[row.source] ?? "var(--chart-8)" }}
+                        />
+                        <span className="truncate">{t(leadSourceKey(row.source))}</span>
+                      </span>
+                      <span className="num shrink-0 text-ink-3">
+                        {number(row.total)} · {percent(row.total, totals.total)}%
+                      </span>
+                    </div>
+                    <Meter
+                      value={percent(row.total, totals.total) / 100}
+                      color={SOURCE_COLORS[row.source] ?? "var(--chart-8)"}
+                      className="mt-1.5"
                     />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Section>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
 
-          <Section title={t("reports.formsTitle")}>
+          <Card title={t("reports.formsTitle")} icon={FileInput} tile="teal" dense flush>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="data-table">
                 <thead>
-                  <tr className="border-b border-border text-left text-muted">
-                    <th className="py-2 pr-4 font-medium">{t("reports.colForm")}</th>
-                    <th className="py-2 pr-4 font-medium">{t("reports.colCrm")}</th>
-                    <th className="py-2 pr-4 text-right font-medium">{t("reports.colTotal")}</th>
-                    <th className="py-2 pr-4 text-right font-medium">{t("reports.colDelivered")}</th>
-                    <th className="py-2 pr-4 text-right font-medium">{t("reports.colFailed")}</th>
-                    <th className="py-2 pr-4 font-medium">{t("reports.colRate")}</th>
-                    <th className="py-2 font-medium">{t("reports.colLast")}</th>
+                  <tr>
+                    <th>{t("reports.colForm")}</th>
+                    <th>{t("reports.colCrm")}</th>
+                    <th className="r">{t("reports.colTotal")}</th>
+                    <th className="r">{t("reports.colDelivered")}</th>
+                    <th className="r">{t("reports.colFailed")}</th>
+                    <th>{t("reports.colRate")}</th>
+                    <th>{t("reports.colLast")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {report.byForm.map((row, index) => (
-                    <tr key={index} className="border-b border-border last:border-0">
-                      <td className="py-3 pr-4">
+                    <tr key={index}>
+                      <td>
                         {row.formLabel ?? t(leadSourceKey(row.source))}
-                        <p className="text-xs text-muted">{t(leadSourceKey(row.source))}</p>
+                        <p className="text-xs text-ink-3">{t(leadSourceKey(row.source))}</p>
                       </td>
-                      <td className="py-3 pr-4">{crmName(row.crmLabel, row.crmPlatform)}</td>
-                      <td className="py-3 pr-4 text-right font-medium">{number(row.total)}</td>
-                      <td className="py-3 pr-4 text-right text-success">{number(row.success)}</td>
-                      <td className="py-3 pr-4 text-right text-danger">{row.failed > 0 ? number(row.failed) : "—"}</td>
-                      <td className="py-3 pr-4"><SuccessBar counts={row} /></td>
-                      <td className="py-3 whitespace-nowrap text-muted">{formatDate(row.last)}</td>
+                      <td>{crmName(row.crmLabel, row.crmPlatform)}</td>
+                      <td className="r font-semibold">{number(row.total)}</td>
+                      <td className="r text-success">{number(row.success)}</td>
+                      <td className="r text-danger">{row.failed > 0 ? number(row.failed) : "—"}</td>
+                      <td>
+                        <SuccessBar counts={row} />
+                      </td>
+                      <td className="text-ink-3">{formatDate(row.last)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </Section>
+          </Card>
 
-          <Section title={t("reports.crmTitle")}>
+          <Card title={t("reports.crmTitle")} icon={Link2} tile="green" dense flush>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="data-table">
                 <thead>
-                  <tr className="border-b border-border text-left text-muted">
-                    <th className="py-2 pr-4 font-medium">{t("reports.colCrm")}</th>
-                    <th className="py-2 pr-4 text-right font-medium">{t("reports.colTotal")}</th>
-                    <th className="py-2 pr-4 text-right font-medium">{t("reports.colDelivered")}</th>
-                    <th className="py-2 pr-4 text-right font-medium">{t("reports.colFailed")}</th>
-                    <th className="py-2 pr-4 text-right font-medium">{t("reports.colDuplicates")}</th>
-                    <th className="py-2 font-medium">{t("reports.colRate")}</th>
+                  <tr>
+                    <th>{t("reports.colCrm")}</th>
+                    <th className="r">{t("reports.colTotal")}</th>
+                    <th className="r">{t("reports.colDelivered")}</th>
+                    <th className="r">{t("reports.colFailed")}</th>
+                    <th className="r">{t("reports.colDuplicates")}</th>
+                    <th>{t("reports.colRate")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {report.byCrm.map((row, index) => (
-                    <tr key={index} className="border-b border-border last:border-0">
-                      <td className="py-3 pr-4">{crmName(row.label, row.platform)}</td>
-                      <td className="py-3 pr-4 text-right font-medium">{number(row.total)}</td>
-                      <td className="py-3 pr-4 text-right text-success">{number(row.success)}</td>
-                      <td className="py-3 pr-4 text-right text-danger">{row.failed > 0 ? number(row.failed) : "—"}</td>
-                      <td className="py-3 pr-4 text-right">{row.duplicates > 0 ? number(row.duplicates) : "—"}</td>
-                      <td className="py-3"><SuccessBar counts={row} /></td>
+                    <tr key={index}>
+                      <td>{crmName(row.label, row.platform)}</td>
+                      <td className="r font-semibold">{number(row.total)}</td>
+                      <td className="r text-success">{number(row.success)}</td>
+                      <td className="r text-danger">{row.failed > 0 ? number(row.failed) : "—"}</td>
+                      <td className="r">{row.duplicates > 0 ? number(row.duplicates) : "—"}</td>
+                      <td>
+                        <SuccessBar counts={row} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </Section>
+          </Card>
 
           {report.byUtm.length > 0 && (
-            <Section title={t("reports.utmTitle")}>
+            <Card title={t("reports.utmTitle")} icon={Megaphone} tile="orange" dense flush>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="data-table">
                   <thead>
-                    <tr className="border-b border-border text-left text-muted">
-                      <th className="py-2 pr-4 font-medium">utm_source</th>
-                      <th className="py-2 pr-4 font-medium">utm_medium</th>
-                      <th className="py-2 pr-4 font-medium">utm_campaign</th>
-                      <th className="py-2 pr-4 text-right font-medium">{t("reports.colTotal")}</th>
-                      <th className="py-2 text-right font-medium">{t("reports.colDelivered")}</th>
+                    <tr>
+                      <th>utm_source</th>
+                      <th>utm_medium</th>
+                      <th>utm_campaign</th>
+                      <th className="r">{t("reports.colTotal")}</th>
+                      <th className="r">{t("reports.colDelivered")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {report.byUtm.map((row, index) => (
-                      <tr key={index} className="border-b border-border last:border-0">
-                        <td className="py-3 pr-4">{row.source ?? "—"}</td>
-                        <td className="py-3 pr-4">{row.medium ?? "—"}</td>
-                        <td className="py-3 pr-4">{row.campaign ?? "—"}</td>
-                        <td className="py-3 pr-4 text-right font-medium">{number(row.total)}</td>
-                        <td className="py-3 text-right text-success">{number(row.success)}</td>
+                      <tr key={index}>
+                        <td>{row.source ?? "—"}</td>
+                        <td>{row.medium ?? "—"}</td>
+                        <td>{row.campaign ?? "—"}</td>
+                        <td className="r font-semibold">{number(row.total)}</td>
+                        <td className="r text-success">{number(row.success)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </Section>
+            </Card>
           )}
 
           {report.errors.length > 0 && (
-            <Section title={t("reports.errorsTitle")}>
+            <Card title={t("reports.errorsTitle")} icon={TriangleAlert} tile="pink">
               <ul className="space-y-3">
                 {report.errors.map((row, index) => (
                   <li key={index} className="flex items-start justify-between gap-4 text-sm">
                     <div className="min-w-0">
                       <p className="break-words font-mono text-danger/90">{translateMessage(row.message, locale)}</p>
-                      <p className="mt-0.5 text-xs text-muted">{t("reports.errorLast", { date: formatDate(row.last) })}</p>
+                      <p className="mt-0.5 text-xs text-ink-3">{t("reports.errorLast", { date: formatDate(row.last) })}</p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-danger/15 px-2.5 py-0.5 text-xs font-medium text-danger">
+                    <Badge tone="bad" className="shrink-0">
                       {number(row.total)}
-                    </span>
+                    </Badge>
                   </li>
                 ))}
               </ul>
-              <Link href="/dashboard/lead-tempo?status=failed" className="mt-4 inline-block text-sm text-primary hover:underline">
+              <Link
+                href="/dashboard/lead-tempo?status=failed"
+                className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
+              >
                 {t("reports.viewFailed")}
               </Link>
-            </Section>
+            </Card>
           )}
         </div>
       )}

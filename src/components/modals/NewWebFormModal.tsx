@@ -20,7 +20,7 @@ export interface WebFormItem {
 const SOURCES = ["telegram", "instagram", "facebook", "website", "other"] as const;
 
 const INPUT_CLASS =
-  "mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50";
+  "mt-1.5 w-full field rounded-[14px] px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50";
 
 function platformName(platform: string): string {
   return platform === "bitrix24" ? "Bitrix24" : platform === "amocrm" ? "amoCRM / Kommo" : platform;
@@ -114,11 +114,11 @@ export function NewWebFormModal({
             {t("webForms.sourceLabel")} <span className="text-danger">*</span>
           </label>
           <Select value={source} onChange={(value) => setSource(value)} required>
-            <option value="" className="bg-surface">
+            <option value="" className="bg-surface-solid">
               {t("webForms.sourcePlaceholder")}
             </option>
             {SOURCES.map((s) => (
-              <option key={s} value={s} className="bg-surface">
+              <option key={s} value={s} className="bg-surface-solid">
                 {t(`webForms.source_${s}`)}
               </option>
             ))}
@@ -141,7 +141,7 @@ export function NewWebFormModal({
           <p className="mt-1.5 text-xs text-muted">{t("webForms.nameHint")}</p>
         </div>
 
-        <div className="rounded-md border border-border p-4 space-y-4">
+        <div className="rounded-[14px] border border-border p-4 space-y-4">
           <p className="text-xs font-medium text-muted uppercase tracking-wide">{t("webForms.utmTitle")}</p>
           <div>
             <label className="block text-sm font-medium">UTM Medium</label>
@@ -185,11 +185,11 @@ export function NewWebFormModal({
             required
             disabled={isLoadingConnections}
           >
-            <option value="" className="bg-surface">
+            <option value="" className="bg-surface-solid">
               {isLoadingConnections ? t("common.loading") : t("webForms.targetPlaceholder")}
             </option>
             {crmConnections.map((c) => (
-              <option key={c._id} value={c._id} className="bg-surface">
+              <option key={c._id} value={c._id} className="bg-surface-solid">
                 {platformName(c.platform)} — {c.label}
               </option>
             ))}
@@ -211,7 +211,7 @@ export function NewWebFormModal({
             onChange={(value) => setStageId(value)}
             disabled={!target || isLoadingStages}
           >
-            <option value="" className="bg-surface">
+            <option value="" className="bg-surface-solid">
               {!target
                 ? t("webForms.stageNeedTarget")
                 : isLoadingStages
@@ -219,7 +219,7 @@ export function NewWebFormModal({
                   : t("webForms.stagePlaceholder")}
             </option>
             {stages.map((s) => (
-              <option key={s.id} value={s.id} className="bg-surface">
+              <option key={s.id} value={s.id} className="bg-surface-solid">
                 {s.name}
               </option>
             ))}
@@ -239,7 +239,7 @@ export function NewWebFormModal({
           <button
             type="submit"
             disabled={isSaving}
-            className="rounded-md bg-primary hover:bg-primary-hover disabled:opacity-50 text-white px-5 py-2 text-sm font-medium transition-colors"
+            className="pressable btn-glass rounded-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-white px-5 py-2 text-sm font-medium transition-colors"
           >
             {isSaving ? t("webForms.creating") : t("webForms.create")}
           </button>
