@@ -41,6 +41,9 @@ export function extractFields(fieldData: FacebookFieldDatum[]): LeadFields {
 
 const UTM_KEYS = ["source", "medium", "campaign", "content", "term"] as const;
 
+// Bitrix24 refuses a card title longer than 255 characters.
+const MAX_TITLE = 255;
+
 // What an integration decides about the lead it delivers, besides where it goes.
 export interface IntegrationDeliveryOptions {
   // Bitrix24: create a deal (with a contact) instead of a lead card. Lead when absent.
@@ -81,8 +84,10 @@ function crmLeadMeta(lead: LeadDocument, options: IntegrationDeliveryOptions): C
   if (lead.source === "api") {
     return { title: name ? `API lead — ${name}` : "API lead", sourceId: "OTHER" };
   }
+  // The card is named after the Facebook form (like web forms are), with the person's name after it.
+  const formLabel = lead.formName || "Facebook lead";
   return {
-    title: name ? `Facebook lead — ${name}` : "Facebook lead",
+    title: (name ? `${formLabel} — ${name}` : formLabel).slice(0, MAX_TITLE),
     entity: options.entity,
     sourceId: options.sourceId || "FACEBOOK",
     sourceDescription: lead.formName ? `LeadSync Facebook forma: ${lead.formName}` : undefined,
