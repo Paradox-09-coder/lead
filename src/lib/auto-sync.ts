@@ -11,6 +11,18 @@ const FIRST_RUN_DELAY_MS = 30 * 1000;
 
 let running = false;
 
+// The same problem (a Page whose token was revoked, say) would otherwise be logged on every run; once an hour is enough.
+const PROBLEM_LOG_EVERY_MS = 60 * 60 * 1000;
+const lastProblemLog = new Map<string, number>();
+
+function logProblem(scope: string, message: string): void {
+  const key = `${scope}|${message}`;
+  const now = Date.now();
+  if (now - (lastProblemLog.get(key) ?? 0) < PROBLEM_LOG_EVERY_MS) return;
+  lastProblemLog.set(key, now);
+  console.warn(`[auto-sync] ${scope}: ${message.replace(/\s+/g, " ")}`);
+}
+
 async function tick(): Promise<void> {
   // A catch-up of hundreds of leads takes longer than the interval; never start a second run on top of it.
   if (running) return;
@@ -25,9 +37,7 @@ async function tick(): Promise<void> {
         if (result.imported > 0 || result.retried > 0) {
           console.log(`[auto-sync] imported ${result.imported}, redelivered ${result.retried} (user ${userId})`);
         }
-        for (const problem of result.problems) {
-          console.warn(`[auto-sync] ${problem.scope}: ${problem.message}`);
-        }
+        for (const problem of result.problems) logProblem(problem.scope, problem.message);
       } catch (error) {
         console.error("[auto-sync] sync failed for a user:", error instanceof Error ? error.message : error);
       }
