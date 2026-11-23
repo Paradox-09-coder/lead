@@ -8,4 +8,9 @@ export async function register() {
     .then(({ registerTelegramWebhook }) => registerTelegramWebhook())
     .then((result) => console.log(`[telegram] webhook ${result}`))
     .catch((error) => console.error("[telegram] webhook registration failed:", error instanceof Error ? error.message : error));
+
+  // Pull Facebook leads whose webhook never arrived, without waiting for somebody to open "Lid tempi".
+  void import("@/lib/auto-sync")
+    .then(({ startAutoSync }) => startAutoSync())
+    .catch((error) => console.error("[auto-sync] failed to start:", error instanceof Error ? error.message : error));
 }

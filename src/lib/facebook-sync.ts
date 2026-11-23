@@ -35,10 +35,21 @@ export interface SyncProblem {
 export interface SyncResult {
   checkedForms: number;
   imported: number;
+  // Leads that had been stored earlier but never reached the CRM (stuck or failed) and were delivered again.
+  retried: number;
   problems: SyncProblem[];
 }
 
-const MAX_PAGES_PER_FORM = 5; // 5 × 100 leads per sync is plenty for a catch-up
+// A form's leads come newest first, so a cap here would leave the OLDEST missing leads out of every sync for good
+// (with a cap of 500, a form that is 600 leads behind never gets its oldest 100). 100 × 100 = 10 000 is a
+// safety stop, not a working limit.
+const MAX_PAGES_PER_FORM = 100;
+
+// A lead is stored before it is pushed to the CRM, so a restart in between leaves it "pending" for good.
+const STUCK_PENDING_MS = 10 * 60 * 1000;
+// Failed leads are tried again automatically this many times (manual retries count too); mostly they are network blips.
+const MAX_AUTO_RETRIES = 3;
+const MAX_REDELIVERIES_PER_FORM = 50;
 
 async function graphJson<T>(url: URL, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
@@ -133,9 +144,43 @@ async function importFormLeads(
   return imported;
 }
 
-export async function syncFacebookLeads(userId: string): Promise<SyncResult> {
+// Delivers again the Facebook leads of one integration that were stored but never made it to the CRM: "pending" for
+// longer than a delivery can take, or "failed" fewer than MAX_AUTO_RETRIES times. The duplicate check is on, as it is
+// for imports, because a failed push may have reached the CRM before the connection broke.
+async function redeliverUndelivered(integration: IntegrationDocument): Promise<number> {
+  const stuck = await Lead.find({
+    integration: integration._id,
+    source: "facebook",
+    rawFieldData: { $exists: true },
+    $or: [
+      { status: "pending", updatedAt: { $lt: new Date(Date.now() - STUCK_PENDING_MS) } },
+      { status: "failed", retryCount: { $lt: MAX_AUTO_RETRIES } },
+    ],
+  })
+    .sort({ createdAt: 1 })
+    .limit(MAX_REDELIVERIES_PER_FORM);
+
+  for (const lead of stuck) {
+    lead.retryCount += 1;
+    // Follow the integration as it is now, like a manual retry does.
+    lead.targetConnection = integration.targetConnection;
+    lead.stageId = integration.stageId;
+    lead.formName = integration.formName;
+    await deliverLeadToCrm(lead, { duplicateCheck: true, ...integrationDeliveryOptions(integration) });
+  }
+  return stuck.length;
+}
+
+export interface SyncOptions {
+  // Re-subscribe each Page to the `leadgen` webhook (what the manual sync has always done). The background sync
+  // leaves the subscription alone.
+  resubscribe?: boolean;
+}
+
+export async function syncFacebookLeads(userId: string, options: SyncOptions = {}): Promise<SyncResult> {
+  const { resubscribe = true } = options;
   const integrations = await Integration.find({ user: userId, status: "active" });
-  const result: SyncResult = { checkedForms: 0, imported: 0, problems: [] };
+  const result: SyncResult = { checkedForms: 0, imported: 0, retried: 0, problems: [] };
   if (integrations.length === 0) return result;
 
   const connectionIds = [...new Set(integrations.map((i) => i.facebookConnection.toString()))];
@@ -144,7 +189,7 @@ export async function syncFacebookLeads(userId: string): Promise<SyncResult> {
   );
   const connectionById = new Map(connections.map((c) => [c._id.toString(), c]));
 
-  for (const connection of connections) {
+  for (const connection of resubscribe ? connections : []) {
     if (!connection.pageId || !connection.pageAccessToken) continue;
     try {
       await subscribePageToLeadgen(connection.pageId, connection.pageAccessToken);
@@ -164,6 +209,7 @@ export async function syncFacebookLeads(userId: string): Promise<SyncResult> {
     }
     try {
       result.imported += await importFormLeads(integration, connection);
+      result.retried += await redeliverUndelivered(integration);
       result.checkedForms++;
     } catch (error) {
       result.problems.push({
