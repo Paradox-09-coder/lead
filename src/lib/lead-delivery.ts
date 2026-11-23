@@ -9,6 +9,7 @@ import { Lead, type LeadDocument } from "@/models/Lead";
 import { pushLeadToCrm, type CrmLeadMeta, type LeadFields } from "@/lib/crm-push";
 import { FACEBOOK_GRAPH_VERSION } from "@/lib/facebook-oauth";
 import type { CrmEntity } from "@/lib/crm-entity";
+import { loadOptionLabels, translateChoiceAnswers, type OptionLabels } from "@/lib/facebook-form-options";
 
 export interface FacebookFieldDatum {
   name: string;
@@ -52,6 +53,9 @@ export interface IntegrationDeliveryOptions {
   // Bitrix24 lead source (SOURCE_ID); Facebook's own source when absent.
   sourceId?: string;
   hiddenFields?: HiddenFieldEntry[];
+  // The form's multiple-choice option labels, so "21-30" is sent instead of its key "uyga_". Looked up from Facebook
+  // when absent.
+  optionLabels?: OptionLabels;
 }
 
 // The delivery settings stored on an integration.
@@ -94,9 +98,22 @@ function crmLeadMeta(lead: LeadDocument, options: IntegrationDeliveryOptions): C
     // UTM tags are always filled in, never asked for.
     utm: { source: "facebook", medium: "lead_ads", content: lead.formName },
     fieldMapping: options.fieldMapping,
-    answers: Array.isArray(lead.rawFieldData) ? (lead.rawFieldData as FacebookFieldDatum[]) : undefined,
+    answers: Array.isArray(lead.rawFieldData)
+      ? translateChoiceAnswers(lead.rawFieldData as FacebookFieldDatum[], options.optionLabels ?? {})
+      : undefined,
     hiddenFields: options.hiddenFields,
   };
+}
+
+// The option labels of the Facebook form a lead came from, for translating its choice answers. Empty for any other
+// source, and when the form or its Facebook connection cannot be found or reached: the answers then go as they are.
+async function facebookOptionLabels(lead: LeadDocument): Promise<OptionLabels> {
+  if (lead.source !== "facebook" || !lead.integration) return {};
+  const integration = await Integration.findById(lead.integration).select("facebookConnection formId");
+  if (!integration) return {};
+  const facebookConnection = await Connection.findById(integration.facebookConnection).select("+pageAccessToken");
+  if (!facebookConnection?.pageAccessToken) return {};
+  return loadOptionLabels(integration.formId, facebookConnection.pageAccessToken);
 }
 
 // Sends a stored lead to its CRM connection and records the outcome on the lead.
@@ -115,7 +132,8 @@ export async function deliverLeadToCrm(
   const connection = await Connection.findById(lead.targetConnection).select("+webhookUrl +jwtToken");
   try {
     if (!connection) throw new Error("CRM ulanishi topilmadi (o'chirilgan bo'lishi mumkin)");
-    const result = await pushLeadToCrm(connection, lead.fields, lead.stageId, crmLeadMeta(lead, options), options);
+    const optionLabels = options.optionLabels ?? (await facebookOptionLabels(lead));
+    const result = await pushLeadToCrm(connection, lead.fields, lead.stageId, crmLeadMeta(lead, { ...options, optionLabels }), options);
     lead.crmLeadId = result.id;
     lead.crmEntity = result.entity;
     lead.crmDuplicate = result.duplicate || undefined;
