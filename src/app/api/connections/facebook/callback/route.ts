@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Connection } from "@/models/Connection";
+import { User } from "@/models/User";
+import { subscribePageToLeadgen, unsubscribePageFromLeadgen } from "@/lib/facebook-sync";
 import { getSessionUserId } from "@/lib/server-session";
 import { FACEBOOK_GRAPH_VERSION, FACEBOOK_OAUTH_STATE_COOKIE, getFacebookRedirectUri } from "@/lib/facebook-oauth";
 import { appBaseUrl } from "@/lib/app-url";
@@ -97,6 +99,8 @@ export async function GET(request: NextRequest) {
     }
 
     await connectDB();
+    // Some accounts take their leads from the background sync only and keep their Pages off the webhook.
+    const owner = await User.findById(userId).select("skipFacebookWebhook");
     for (const page of pages) {
       // Re-connecting updates the existing record for that page instead of duplicating it.
       await Connection.findOneAndUpdate(
@@ -106,16 +110,13 @@ export async function GET(request: NextRequest) {
       );
 
       // Tells Facebook to send "leadgen" webhook events for this Page to our
-      // app-level webhook URL. Harmless to call even before that URL is
-      // configured in the App Dashboard — it just means nothing gets
-      // delivered until then. Failure here shouldn't block the connection.
+      // app-level webhook URL (or, for an account that opted out, to stop sending them). Harmless to call even
+      // before that URL is configured in the App Dashboard. Failure here shouldn't block the connection.
       try {
-        const subscribeUrl = new URL(`https://graph.facebook.com/${FACEBOOK_GRAPH_VERSION}/${page.id}/subscribed_apps`);
-        subscribeUrl.searchParams.set("subscribed_fields", "leadgen");
-        subscribeUrl.searchParams.set("access_token", page.access_token);
-        await fetch(subscribeUrl, { method: "POST" });
+        if (owner?.skipFacebookWebhook) await unsubscribePageFromLeadgen(page.id, page.access_token);
+        else await subscribePageToLeadgen(page.id, page.access_token);
       } catch {
-        // Non-fatal — the Page connection itself already succeeded.
+        // Non-fatal: the Page connection itself already succeeded.
       }
     }
 

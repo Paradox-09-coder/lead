@@ -10,6 +10,9 @@ export interface UserDocument extends mongoose.Document {
   // Telegram user id, set once the account is linked from the Telegram Mini App.
   telegramId?: string;
   role: "user" | "admin";
+  // When set, LeadSync leaves this account's Facebook Pages unsubscribed from the `leadgen` webhook: it does not
+  // subscribe them when they are connected or synced, and leads arrive through the background sync alone.
+  skipFacebookWebhook?: boolean;
   createdAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
 }
@@ -54,6 +57,9 @@ const userSchema = new Schema<UserDocument>(
       type: String,
       enum: ["user", "admin"],
       default: "user",
+    },
+    skipFacebookWebhook: {
+      type: Boolean,
     },
   },
   { timestamps: true },

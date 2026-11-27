@@ -1,6 +1,7 @@
 import { Connection, type ConnectionDocument } from "@/models/Connection";
 import { Integration, type IntegrationDocument } from "@/models/Integration";
 import { Lead } from "@/models/Lead";
+import { User } from "@/models/User";
 import { FACEBOOK_GRAPH_VERSION } from "@/lib/facebook-oauth";
 import {
   deliverLeadToCrm,
@@ -144,6 +145,14 @@ async function importFormLeads(
   return imported;
 }
 
+// Removes this app's `leadgen` webhook subscription from a Page (for accounts that opted out of webhooks).
+export async function unsubscribePageFromLeadgen(pageId: string, pageAccessToken: string): Promise<void> {
+  const url = new URL(`https://graph.facebook.com/${FACEBOOK_GRAPH_VERSION}/${pageId}/subscribed_apps`);
+  url.searchParams.set("access_token", pageAccessToken);
+  const body = await graphJson<{ success?: boolean }>(url, { method: "DELETE" });
+  if (!body.success) throw new Error("Sahifani leadgen webhook'idan chiqarib bo'lmadi");
+}
+
 // Delivers again the Facebook leads of one integration that were stored but never made it to the CRM: "pending" for
 // longer than a delivery can take, or "failed" fewer than MAX_AUTO_RETRIES times. The duplicate check is on, as it is
 // for imports, because a failed push may have reached the CRM before the connection broke.
@@ -178,7 +187,9 @@ export interface SyncOptions {
 }
 
 export async function syncFacebookLeads(userId: string, options: SyncOptions = {}): Promise<SyncResult> {
-  const { resubscribe = true } = options;
+  // An account that opted out of webhooks never has its Pages subscribed again.
+  const owner = await User.findById(userId).select("skipFacebookWebhook");
+  const resubscribe = (options.resubscribe ?? true) && !owner?.skipFacebookWebhook;
   const integrations = await Integration.find({ user: userId, status: "active" });
   const result: SyncResult = { checkedForms: 0, imported: 0, retried: 0, problems: [] };
   if (integrations.length === 0) return result;
